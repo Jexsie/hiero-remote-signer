@@ -48,6 +48,16 @@
                 "types": "./dist/gcp/index.d.cts",
                 "default": "./dist/gcp/index.cjs"
             }
+        },
+        "./vault": {
+            "import": {
+                "types": "./dist/vault/index.d.ts",
+                "default": "./dist/vault/index.js"
+            },
+            "require": {
+                "types": "./dist/vault/index.d.cts",
+                "default": "./dist/vault/index.cjs"
+            }
         }
     },
     "keywords": [
@@ -62,7 +72,9 @@
         "gcp-kms",
         "google-cloud-kms",
         "remote-signer",
-        "azure-key-vault"
+        "azure-key-vault",
+        "hashicorp-vault",
+        "openbao"
     ],
     "sideEffects": false,
     "files": [
