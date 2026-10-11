@@ -19,6 +19,8 @@ export interface KeyMaterial {
     spki: Uint8Array;
     /** PEM-encoded SubjectPublicKeyInfo */
     pem: string;
+    /** Public key as a JWK (base64url `x`/`y` for EC keys) */
+    publicJwk: { kty?: string; crv?: string; x?: string; y?: string };
     /** Raw private scalar (secp256k1, P-256) or seed (Ed25519); empty for RSA. Test-only. */
     privateKey: Uint8Array;
 }
@@ -46,6 +48,7 @@ export function generateKeyMaterial(curve: KeyCurve): KeyMaterial {
             pair.publicKey.export({ type: "spki", format: "der" }),
         ),
         pem: pair.publicKey.export({ type: "spki", format: "pem" }).toString(),
+        publicJwk: pair.publicKey.export({ format: "jwk" }),
         privateKey:
             curve === "rsa"
                 ? new Uint8Array()
