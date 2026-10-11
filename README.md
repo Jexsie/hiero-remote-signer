@@ -134,7 +134,7 @@ await tx.freezeWith(client).signWith(signer.publicKey, signer.sign);
 
 `npm run test:integration` creates an account owned by a real KMS key on a live Hiero network and spends from it. It is skipped unless `HIERO_NETWORK`, `HIERO_OPERATOR_ID`, `HIERO_OPERATOR_KEY` and `AWS_KMS_KEY_ID` are set, either in the environment or in `test/.env` (see `test/.env.example`). A local network started with Solo is sufficient.
 
-`npm run format:check` runs Prettier. `npm run build` type-checks the tests with TypeScript 7, builds ESM and CommonJS output with tsup, and emits declarations with `tsc`.
+`npm run format:check` runs Prettier. `npm run build` type-checks the tests with TypeScript 7, emits ESM and declarations with `tsc`, builds per-file CommonJS with Babel, and mirrors the declarations to `.d.cts`, the same pipeline as hiero-sdk-js.
 
 ## Layout
 

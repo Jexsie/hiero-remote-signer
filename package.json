@@ -51,7 +51,8 @@
     },
     "scripts": {
         "prepare": "npm run build",
-        "build": "npm run build:test && tsup && tsc -p tsconfig.json --emitDeclarationOnly && node scripts/build-cjs-types.mjs",
+        "build": "npm run build:test && npm run clean && npm run build:compile",
+        "build:compile": "tsc -p tsconfig.json && babel src -d dist --extensions .ts --out-file-extension .cjs --source-maps && node scripts/generate-cts-declarations.js dist",
         "build:test": "tsc --noEmit -p test/tsconfig.test.json",
         "clean": "rm -rf dist",
         "format": "prettier --write .",
@@ -78,13 +79,17 @@
     "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@aws-sdk/client-kms": "^3.1149.0",
+        "@babel/cli": "^8.0.6",
+        "@babel/core": "^8.0.7",
+        "@babel/plugin-transform-modules-commonjs": "^8.0.1",
+        "@babel/preset-typescript": "^8.0.7",
         "@hiero-ledger/sdk": "^2.89.1",
         "@noble/curves": "^2.4.0",
         "@types/node": "^26.6.5",
         "@vitest/coverage-v8": "^5.0.3",
         "aws-sdk-client-mock": "^4.1.0",
+        "babel-plugin-module-rewrite": "^0.2.0",
         "prettier": "^3.9.9",
-        "tsup": "^8.5.1",
         "typescript": "^7.0.2",
         "vitest": "^5.0.3"
     }
