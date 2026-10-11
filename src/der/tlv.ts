@@ -4,6 +4,7 @@ import { RemoteSignerError, RemoteSignerErrorCodes } from "../errors/index.js";
 export const DerTag = {
     Integer: 0x02,
     BitString: 0x03,
+    OctetString: 0x04,
     ObjectIdentifier: 0x06,
     Sequence: 0x30,
 } as const;
