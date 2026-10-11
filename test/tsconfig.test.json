@@ -1,0 +1,15 @@
+{
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "rootDir": "..",
+        "noEmit": true,
+        "declaration": false,
+        "declarationMap": false,
+        "sourceMap": false,
+        "paths": {
+            "hiero-kms-signer": ["../src/index.ts"],
+            "hiero-kms-signer/aws": ["../src/aws/index.ts"]
+        }
+    },
+    "include": ["../src", "**/*.ts", "../examples"]
+}
