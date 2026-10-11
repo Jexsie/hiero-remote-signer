@@ -5,15 +5,7 @@
         "noEmit": true,
         "declaration": false,
         "declarationMap": false,
-        "sourceMap": false,
-        "paths": {
-            "hiero-remote-signer": ["../src/index.ts"],
-            "hiero-remote-signer/aws": ["../src/aws/index.ts"],
-            "hiero-remote-signer/azure": ["../src/azure/index.ts"],
-            "hiero-remote-signer/gcp": ["../src/gcp/index.ts"],
-            "hiero-remote-signer/pkcs11": ["../src/pkcs11/index.ts"],
-            "hiero-remote-signer/vault": ["../src/vault/index.ts"]
-        }
+        "sourceMap": false
     },
-    "include": ["../src", "**/*.ts", "../examples"]
+    "include": ["../src", "**/*.ts"]
 }
