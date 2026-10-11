@@ -98,3 +98,43 @@ jobs:
               env:
                   VAULT_ADDR: http://127.0.0.1:8200
                   VAULT_TOKEN: ci-root-token
+
+    pkcs11:
+        name: PKCS#11 (SoftHSM)
+        runs-on: ubuntu-latest
+        steps:
+            - name: Harden Runner
+              uses: step-security/harden-runner@351661ca32ac09a36dc5ee2d536e3128f2a3c8ed # v2.22.0
+              with:
+                  egress-policy: audit
+
+            - name: Checkout code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Setup Node
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              with:
+                  node-version: 24
+                  cache: npm
+
+            - name: Install SoftHSM and initialize a token
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y softhsm2
+                  mkdir -p "$RUNNER_TEMP/softhsm/tokens"
+                  echo "directories.tokendir = $RUNNER_TEMP/softhsm/tokens" > "$RUNNER_TEMP/softhsm/softhsm2.conf"
+                  echo "SOFTHSM2_CONF=$RUNNER_TEMP/softhsm/softhsm2.conf" >> "$GITHUB_ENV"
+                  SOFTHSM2_CONF="$RUNNER_TEMP/softhsm/softhsm2.conf" \
+                      softhsm2-util --init-token --free --label hiero --pin 1234 --so-pin 5678
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run the PKCS#11 integration spec
+              run: npx vitest run -c test/vitest-integration.config.ts test/integration/pkcs11
+              env:
+                  PKCS11_LIBRARY: /usr/lib/softhsm/libsofthsm2.so
+                  PKCS11_TOKEN_LABEL: hiero
+                  PKCS11_PIN: "1234"
