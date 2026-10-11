@@ -1,0 +1,91 @@
+{
+    "name": "hiero-kms-signer",
+    "version": "0.1.0",
+    "description": "Sign Hiero network transactions with keys held in a cloud KMS. Private keys never leave the KMS.",
+    "license": "Apache-2.0",
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        },
+        "./aws": {
+            "import": {
+                "types": "./dist/aws/index.d.ts",
+                "default": "./dist/aws/index.js"
+            },
+            "require": {
+                "types": "./dist/aws/index.d.cts",
+                "default": "./dist/aws/index.cjs"
+            }
+        }
+    },
+    "keywords": [
+        "hiero",
+        "dlt",
+        "kms",
+        "hsm",
+        "aws-kms",
+        "signer",
+        "secp256k1",
+        "ed25519"
+    ],
+    "sideEffects": false,
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ],
+    "engines": {
+        "node": ">=20"
+    },
+    "scripts": {
+        "prepare": "npm run build",
+        "build": "npm run build:test && tsup && tsc -p tsconfig.json --emitDeclarationOnly && node scripts/build-cjs-types.mjs",
+        "build:test": "tsc --noEmit -p test/tsconfig.test.json",
+        "clean": "rm -rf dist",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "test:unit": "tsc --noEmit -p test/tsconfig.test.json && vitest run -c test/vitest.config.ts",
+        "test:unit:coverage": "tsc --noEmit -p test/tsconfig.test.json && vitest run -c test/vitest.config.ts --coverage",
+        "test:integration": "vitest run -c test/vitest-integration.config.ts",
+        "test:integration:coverage": "vitest run -c test/vitest-integration.config.ts --coverage",
+        "test": "npm run test:unit && npm run test:integration",
+        "test:watch": "vitest -c test/vitest.config.ts"
+    },
+    "dependencies": {
+        "@noble/hashes": "^2.4.0"
+    },
+    "peerDependencies": {
+        "@aws-sdk/client-kms": "^3.1149.0",
+        "@hiero-ledger/sdk": "^2.89.0"
+    },
+    "peerDependenciesMeta": {
+        "@aws-sdk/client-kms": {
+            "optional": true
+        }
+    },
+    "devDependencies": {
+        "@arethetypeswrong/cli": "0.18.5",
+        "@aws-sdk/client-kms": "^3.1149.0",
+        "@hiero-ledger/sdk": "^2.89.1",
+        "@noble/curves": "^2.4.0",
+        "@types/node": "^26.6.5",
+        "@vitest/coverage-v8": "^5.0.3",
+        "aws-sdk-client-mock": "^4.1.0",
+        "prettier": "^3.9.9",
+        "tsup": "^8.5.1",
+        "typescript": "^7.0.2",
+        "vitest": "^5.0.3"
+    }
+}
