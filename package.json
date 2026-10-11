@@ -29,6 +29,16 @@
                 "default": "./dist/aws/index.cjs"
             }
         },
+        "./azure": {
+            "import": {
+                "types": "./dist/azure/index.d.ts",
+                "default": "./dist/azure/index.js"
+            },
+            "require": {
+                "types": "./dist/azure/index.d.cts",
+                "default": "./dist/azure/index.cjs"
+            }
+        },
         "./gcp": {
             "import": {
                 "types": "./dist/gcp/index.d.ts",
@@ -51,7 +61,8 @@
         "ed25519",
         "gcp-kms",
         "google-cloud-kms",
-        "remote-signer"
+        "remote-signer",
+        "azure-key-vault"
     ],
     "sideEffects": false,
     "files": [
@@ -82,11 +93,15 @@
     },
     "peerDependencies": {
         "@aws-sdk/client-kms": "^3.1149.0",
+        "@azure/keyvault-keys": "^4.10.2",
         "@google-cloud/kms": "^6.2.1",
         "@hiero-ledger/sdk": "^2.89.0"
     },
     "peerDependenciesMeta": {
         "@aws-sdk/client-kms": {
+            "optional": true
+        },
+        "@azure/keyvault-keys": {
             "optional": true
         },
         "@google-cloud/kms": {
@@ -96,6 +111,8 @@
     "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@aws-sdk/client-kms": "^3.1149.0",
+        "@azure/identity": "^4.13.3",
+        "@azure/keyvault-keys": "^4.10.2",
         "@babel/cli": "^8.0.6",
         "@babel/core": "^8.0.7",
         "@babel/plugin-transform-modules-commonjs": "^8.0.1",

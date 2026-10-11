@@ -2,7 +2,7 @@
  * Machine-readable codes carried by every {@link RemoteSignerError}.
  */
 export const RemoteSignerErrorCodes = {
-    /** A DER or PEM structure returned by the backend could not be parsed. */
+    /** A DER, PEM or JWK structure returned by the backend could not be parsed. */
     MalformedDer: "MALFORMED_DER",
     /** A DER signature was structurally valid but its scalars are invalid. */
     MalformedSignature: "MALFORMED_SIGNATURE",

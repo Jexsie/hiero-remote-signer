@@ -9,6 +9,7 @@
         "paths": {
             "hiero-remote-signer": ["../src/index.ts"],
             "hiero-remote-signer/aws": ["../src/aws/index.ts"],
+            "hiero-remote-signer/azure": ["../src/azure/index.ts"],
             "hiero-remote-signer/gcp": ["../src/gcp/index.ts"]
         }
     },
