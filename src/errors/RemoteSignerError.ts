@@ -1,7 +1,7 @@
 /**
- * Machine-readable codes carried by every {@link KmsSignerError}.
+ * Machine-readable codes carried by every {@link RemoteSignerError}.
  */
-export const KmsSignerErrorCodes = {
+export const RemoteSignerErrorCodes = {
     /** A DER structure returned by the KMS could not be parsed. */
     MalformedDer: "MALFORMED_DER",
     /** A DER signature was structurally valid but its scalars are invalid. */
@@ -14,27 +14,27 @@ export const KmsSignerErrorCodes = {
     MessageRejected: "MESSAGE_REJECTED",
     /** The KMS returned no signature or a signature that does not verify. */
     SignatureInvalid: "SIGNATURE_INVALID",
-    /** The call to the KMS failed. The original error is attached as `cause`. */
-    KmsRequestFailed: "KMS_REQUEST_FAILED",
+    /** The call to the signing backend failed. The original error is attached as `cause`. */
+    BackendRequestFailed: "BACKEND_REQUEST_FAILED",
 } as const;
 
-export type KmsSignerErrorCode =
-    (typeof KmsSignerErrorCodes)[keyof typeof KmsSignerErrorCodes];
+export type RemoteSignerErrorCode =
+    (typeof RemoteSignerErrorCodes)[keyof typeof RemoteSignerErrorCodes];
 
 /**
  * Error thrown by every signer and DER helper in this package.
  */
-export class KmsSignerError extends Error {
+export class RemoteSignerError extends Error {
     /** Machine-readable error code */
-    public readonly code: KmsSignerErrorCode;
+    public readonly code: RemoteSignerErrorCode;
 
     constructor(
-        code: KmsSignerErrorCode,
+        code: RemoteSignerErrorCode,
         message: string,
         options?: { cause?: unknown },
     ) {
         super(message, options);
-        this.name = "KmsSignerError";
+        this.name = "RemoteSignerError";
         this.code = code;
     }
 }

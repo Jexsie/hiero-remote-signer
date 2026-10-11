@@ -1,4 +1,4 @@
-import { KmsSignerError, KmsSignerErrorCodes } from "../errors/index.js";
+import { RemoteSignerError, RemoteSignerErrorCodes } from "../errors/index.js";
 import { DerTag, expectTag, readTlv } from "./tlv.js";
 
 /** Order of the secp256k1 group. */
@@ -20,16 +20,16 @@ export function derSignatureToCompact(der: Uint8Array): Uint8Array {
     const seq = readTlv(der, 0);
     expectTag(seq, DerTag.Sequence, "ECDSA-Sig-Value SEQUENCE");
     if (seq.end !== der.length) {
-        throw new KmsSignerError(
-            KmsSignerErrorCodes.MalformedSignature,
+        throw new RemoteSignerError(
+            RemoteSignerErrorCodes.MalformedSignature,
             "trailing bytes after signature",
         );
     }
     const r = readScalar(seq.value, 0, "r");
     const s = readScalar(seq.value, r.end, "s");
     if (s.end !== seq.value.length) {
-        throw new KmsSignerError(
-            KmsSignerErrorCodes.MalformedSignature,
+        throw new RemoteSignerError(
+            RemoteSignerErrorCodes.MalformedSignature,
             "unexpected elements in signature",
         );
     }
@@ -50,21 +50,21 @@ function readScalar(
     const tlv = readTlv(seq, offset);
     expectTag(tlv, DerTag.Integer, `${name} INTEGER`);
     if (tlv.value.length === 0 || tlv.value.length > 33) {
-        throw new KmsSignerError(
-            KmsSignerErrorCodes.MalformedSignature,
+        throw new RemoteSignerError(
+            RemoteSignerErrorCodes.MalformedSignature,
             `${name} has invalid length ${tlv.value.length}`,
         );
     }
     if (tlv.value[0]! & 0x80) {
-        throw new KmsSignerError(
-            KmsSignerErrorCodes.MalformedSignature,
+        throw new RemoteSignerError(
+            RemoteSignerErrorCodes.MalformedSignature,
             `${name} is negative`,
         );
     }
     const value = bytesToBigInt(tlv.value);
     if (value === 0n || value >= SECP256K1_N) {
-        throw new KmsSignerError(
-            KmsSignerErrorCodes.MalformedSignature,
+        throw new RemoteSignerError(
+            RemoteSignerErrorCodes.MalformedSignature,
             `${name} is out of range`,
         );
     }

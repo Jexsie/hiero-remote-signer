@@ -1,2 +1,5 @@
-export { KmsSignerError, KmsSignerErrorCodes } from "./KmsSignerError.js";
-export type { KmsSignerErrorCode } from "./KmsSignerError.js";
+export {
+    RemoteSignerError,
+    RemoteSignerErrorCodes,
+} from "./RemoteSignerError.js";
+export type { RemoteSignerErrorCode } from "./RemoteSignerError.js";

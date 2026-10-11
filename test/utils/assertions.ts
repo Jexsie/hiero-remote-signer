@@ -1,30 +1,33 @@
 import { expect } from "vitest";
 
-import { KmsSignerError } from "../../src/errors/index.js";
-import type { KmsSignerErrorCode } from "../../src/errors/index.js";
+import { RemoteSignerError } from "../../src/errors/index.js";
+import type { RemoteSignerErrorCode } from "../../src/errors/index.js";
 
-/** Asserts that `fn` throws a {@link KmsSignerError} with `code`. */
-export function expectCode(fn: () => unknown, code: KmsSignerErrorCode): void {
+/** Asserts that `fn` throws a {@link RemoteSignerError} with `code`. */
+export function expectCode(
+    fn: () => unknown,
+    code: RemoteSignerErrorCode,
+): void {
     try {
         fn();
     } catch (e) {
-        expect(e).toBeInstanceOf(KmsSignerError);
-        expect((e as KmsSignerError).code).toBe(code);
+        expect(e).toBeInstanceOf(RemoteSignerError);
+        expect((e as RemoteSignerError).code).toBe(code);
         return;
     }
-    throw new Error(`expected KmsSignerError ${code}`);
+    throw new Error(`expected RemoteSignerError ${code}`);
 }
 
-/** Asserts that `promise` rejects with a {@link KmsSignerError} with `code`. */
+/** Asserts that `promise` rejects with a {@link RemoteSignerError} with `code`. */
 export async function expectCodeAsync(
     promise: Promise<unknown>,
-    code: KmsSignerErrorCode,
-): Promise<KmsSignerError> {
+    code: RemoteSignerErrorCode,
+): Promise<RemoteSignerError> {
     const err = await promise.then(
         () => undefined,
         (e: unknown) => e,
     );
-    expect(err).toBeInstanceOf(KmsSignerError);
-    expect((err as KmsSignerError).code).toBe(code);
-    return err as KmsSignerError;
+    expect(err).toBeInstanceOf(RemoteSignerError);
+    expect((err as RemoteSignerError).code).toBe(code);
+    return err as RemoteSignerError;
 }

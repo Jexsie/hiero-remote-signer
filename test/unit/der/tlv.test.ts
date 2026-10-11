@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { decodeOid, readTlv } from "../../../src/der/tlv.js";
-import { KmsSignerErrorCodes } from "../../../src/errors/index.js";
+import { RemoteSignerErrorCodes } from "../../../src/errors/index.js";
 import { expectCode } from "../../utils/assertions.js";
 
 describe("readTlv", () => {
@@ -21,25 +21,25 @@ describe("readTlv", () => {
     it("rejects a truncated header", () => {
         expectCode(
             () => readTlv(new Uint8Array([0x30]), 0),
-            KmsSignerErrorCodes.MalformedDer,
+            RemoteSignerErrorCodes.MalformedDer,
         );
     });
 
     it("rejects indefinite and oversized length encodings", () => {
         expectCode(
             () => readTlv(new Uint8Array([0x30, 0x80]), 0),
-            KmsSignerErrorCodes.MalformedDer,
+            RemoteSignerErrorCodes.MalformedDer,
         );
         expectCode(
             () => readTlv(new Uint8Array([0x30, 0x83, 0, 0, 1]), 0),
-            KmsSignerErrorCodes.MalformedDer,
+            RemoteSignerErrorCodes.MalformedDer,
         );
     });
 
     it("rejects a truncated long-form length", () => {
         expectCode(
             () => readTlv(new Uint8Array([0x30, 0x82, 0x01]), 0),
-            KmsSignerErrorCodes.MalformedDer,
+            RemoteSignerErrorCodes.MalformedDer,
         );
     });
 });
@@ -54,7 +54,7 @@ describe("decodeOid", () => {
     it("rejects an empty OID", () => {
         expectCode(
             () => decodeOid(new Uint8Array()),
-            KmsSignerErrorCodes.MalformedDer,
+            RemoteSignerErrorCodes.MalformedDer,
         );
     });
 });

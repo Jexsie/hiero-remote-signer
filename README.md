@@ -1,6 +1,6 @@
-# hiero-kms-signer
+# hiero-remote-signer
 
-`hiero-kms-signer` signs transactions for Hiero-based networks with private keys that stay inside a cloud key management service. It produces the `transactionSigner` callback that the Hiero JavaScript SDK (`@hiero-ledger/sdk`) already accepts in `Transaction.signWith()` and `Client.setOperatorWith()`, so no SDK fork or wallet layer is involved. The first provider is AWS KMS. The only runtime dependency is `@noble/hashes` for Keccak-256, with the SDK and the AWS client declared as peer dependencies.
+`hiero-remote-signer` signs transactions for Hiero-based networks with private keys that stay inside a cloud key management service. It produces the `transactionSigner` callback that the Hiero JavaScript SDK (`@hiero-ledger/sdk`) already accepts in `Transaction.signWith()` and `Client.setOperatorWith()`, so no SDK fork or wallet layer is involved. The first provider is AWS KMS. The only runtime dependency is `@noble/hashes` for Keccak-256, with the SDK and the AWS client declared as peer dependencies.
 
 ## Model
 
@@ -9,7 +9,7 @@
 Every provider implements one interface.
 
 ```ts
-interface HieroKmsSigner {
+interface HieroRemoteSigner {
     readonly keyType: "ECDSA_SECP256K1" | "ED25519";
     readonly publicKey: PublicKey;                              // @hiero-ledger/sdk PublicKey
     readonly sign: (bodyBytes: Uint8Array) => Promise<Uint8Array>; // 64-byte signature
@@ -47,7 +47,7 @@ The body bytes are sent unchanged with `MessageType: RAW`. AWS KMS accepts at mo
 
 ### Errors
 
-Every failure surfaces as a `KmsSignerError` with a `code`. KMS client errors are attached as `cause`.
+Every failure surfaces as a `RemoteSignerError` with a `code`. Backend client errors are attached as `cause`.
 
 | Code | Raised when |
 |---|---|
@@ -57,7 +57,7 @@ Every failure surfaces as a `KmsSignerError` with a `code`. KMS client errors ar
 | `MALFORMED_SIGNATURE` | A DER signature has invalid scalars. |
 | `MESSAGE_REJECTED` | An Ed25519 body exceeds the 4096-byte KMS limit. |
 | `SIGNATURE_INVALID` | KMS returned no signature or one that fails local verification. |
-| `KMS_REQUEST_FAILED` | A `GetPublicKey` or `Sign` request failed. |
+| `BACKEND_REQUEST_FAILED` | A `GetPublicKey` or `Sign` request failed. |
 
 ## Flow
 
@@ -100,19 +100,19 @@ The SDK builds one `TransactionBody` per node account ID and signs each one. A t
 |---|---|
 | Node.js 20 or later | The package is ESM only. |
 | `@hiero-ledger/sdk` 2.89 or later | Peer dependency. |
-| `@aws-sdk/client-kms` 3.1149 or later | Peer dependency for the `hiero-kms-signer/aws` entry point. |
+| `@aws-sdk/client-kms` 3.1149 or later | Peer dependency for the `hiero-remote-signer/aws` entry point. |
 | A KMS key | Key spec `ECC_SECG_P256K1` or `ECC_NIST_EDWARDS25519`, key usage `SIGN_VERIFY`. |
 | IAM permissions | `kms:GetPublicKey` and `kms:Sign` on that key. |
 
 ```sh
-npm install hiero-kms-signer @hiero-ledger/sdk @aws-sdk/client-kms   # library and peers
+npm install hiero-remote-signer @hiero-ledger/sdk @aws-sdk/client-kms   # library and peers
 aws kms create-key --key-spec ECC_SECG_P256K1 --key-usage SIGN_VERIFY # creates the signing key
 ```
 
 ```ts
 import { AccountCreateTransaction, Client, Hbar, TransferTransaction } from "@hiero-ledger/sdk";
-import { AwsKmsSigner } from "hiero-kms-signer/aws";
-import { setClientOperator } from "hiero-kms-signer";
+import { AwsKmsSigner } from "hiero-remote-signer/aws";
+import { setClientOperator } from "hiero-remote-signer";
 
 const signer = await AwsKmsSigner.create({ keyId: "alias/hiero-treasury" });
 
@@ -141,11 +141,11 @@ await tx.freezeWith(client).signWith(signer.publicKey, signer.sign);
 ```
 src/
   index.ts                    public entry point
-  types/                      HieroKeyType and the HieroKmsSigner interface
-  errors/                     KmsSignerError and KmsSignerErrorCodes
+  types/                      HieroKeyType and the HieroRemoteSigner interface
+  errors/                     RemoteSignerError and RemoteSignerErrorCodes
   client/                     setClientOperator
   der/                        DER reader, SubjectPublicKeyInfo parsing, signature conversion, low-S rule
-  aws/                        AWS KMS provider (hiero-kms-signer/aws)
+  aws/                        AWS KMS provider (hiero-remote-signer/aws)
 test/
   unit/                       unit tests, mirroring src/
   integration/                live network specs
@@ -156,7 +156,7 @@ test/
 examples/transfer.ts          operator transfer signed through KMS
 ```
 
-Only `aws/` contains provider code. A new provider implements `HieroKmsSigner`, reuses `parseSpki` and `derSignatureToCompact`, and lives in its own entry point so that applications only install the cloud client they use.
+Only `aws/` contains provider code. A new provider implements `HieroRemoteSigner`, reuses `parseSpki` and `derSignatureToCompact`, and lives in its own entry point so that applications only install the cloud client they use.
 
 ## Out of scope
 
@@ -164,7 +164,7 @@ Only `aws/` contains provider code. A new provider implements `HieroKmsSigner`, 
 
 **PKCS#11 hardware modules.** On-premises HSMs reached through PKCS#11 suit operators who cannot use a cloud KMS. The binding requires a native module such as `pkcs11js`, which ties the package to a compiler toolchain and platform builds, so it belongs in a separate package.
 
-**Transaction policy checks.** A wrapper could decode each body before signing and refuse transfers above a limit or to unknown accounts. This is the most useful extension for treasury keys, but it requires decoding protobuf bodies and a policy language, and a mistake there silently blocks or permits funds movement. It is planned as a separate layer that wraps any `HieroKmsSigner`.
+**Transaction policy checks.** A wrapper could decode each body before signing and refuse transfers above a limit or to unknown accounts. This is the most useful extension for treasury keys, but it requires decoding protobuf bodies and a policy language, and a mistake there silently blocks or permits funds movement. It is planned as a separate layer that wraps any `HieroRemoteSigner`.
 
 **Parallel per-node signing.** The SDK awaits each node's signature in sequence, so signing latency grows with the node count. Parallelism would require changes inside the SDK. Restricting node account IDs addresses both latency and cost without it.
 

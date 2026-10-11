@@ -1,26 +1,26 @@
 import { describe, expect, it } from "vitest";
 
 import {
-    KmsSignerError,
-    KmsSignerErrorCodes,
+    RemoteSignerError,
+    RemoteSignerErrorCodes,
 } from "../../../src/errors/index.js";
 
-describe("KmsSignerError", () => {
+describe("RemoteSignerError", () => {
     it("carries its code, message and name", () => {
-        const error = new KmsSignerError(
-            KmsSignerErrorCodes.UnsupportedKey,
+        const error = new RemoteSignerError(
+            RemoteSignerErrorCodes.UnsupportedKey,
             "bad key",
         );
         expect(error.code).toBe("UNSUPPORTED_KEY");
         expect(error.message).toBe("bad key");
-        expect(error.name).toBe("KmsSignerError");
+        expect(error.name).toBe("RemoteSignerError");
         expect(error.cause).toBeUndefined();
     });
 
     it("keeps the original error as cause", () => {
         const cause = new Error("original");
-        const error = new KmsSignerError(
-            KmsSignerErrorCodes.KmsRequestFailed,
+        const error = new RemoteSignerError(
+            RemoteSignerErrorCodes.BackendRequestFailed,
             "wrapped",
             { cause },
         );
@@ -28,11 +28,11 @@ describe("KmsSignerError", () => {
     });
 
     it("is instanceof Error", () => {
-        const error = new KmsSignerError(
-            KmsSignerErrorCodes.MalformedDer,
+        const error = new RemoteSignerError(
+            RemoteSignerErrorCodes.MalformedDer,
             "test",
         );
         expect(error).toBeInstanceOf(Error);
-        expect(error).toBeInstanceOf(KmsSignerError);
+        expect(error).toBeInstanceOf(RemoteSignerError);
     });
 });

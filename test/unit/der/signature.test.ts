@@ -7,8 +7,8 @@ import { keccak_256 } from "@noble/hashes/sha3.js";
 import { derSignatureToCompact } from "../../../src/der/index.js";
 import { SECP256K1_N } from "../../../src/der/signature.js";
 import {
-    KmsSignerError,
-    KmsSignerErrorCodes,
+    RemoteSignerError,
+    RemoteSignerErrorCodes,
 } from "../../../src/errors/index.js";
 import { expectCode } from "../../utils/assertions.js";
 
@@ -97,19 +97,19 @@ describe("derSignatureToCompact", () => {
         ]);
         expectCode(
             () => derSignatureToCompact(zero),
-            KmsSignerErrorCodes.MalformedSignature,
+            RemoteSignerErrorCodes.MalformedSignature,
         );
         expectCode(
             () => derSignatureToCompact(negative),
-            KmsSignerErrorCodes.MalformedSignature,
+            RemoteSignerErrorCodes.MalformedSignature,
         );
         expectCode(
             () => derSignatureToCompact(tooBig),
-            KmsSignerErrorCodes.MalformedSignature,
+            RemoteSignerErrorCodes.MalformedSignature,
         );
     });
 
-    it("only ever throws KmsSignerError on mutated input", () => {
+    it("only ever throws RemoteSignerError on mutated input", () => {
         const base = derSign(randomBytes(64), false);
         for (let i = 0; i < 2000; i++) {
             const mutated = new Uint8Array(base);
@@ -122,7 +122,7 @@ describe("derSignatureToCompact", () => {
                 const out = derSignatureToCompact(mutated);
                 expect(out.length).toBe(64);
             } catch (e) {
-                expect(e).toBeInstanceOf(KmsSignerError);
+                expect(e).toBeInstanceOf(RemoteSignerError);
             }
         }
     });

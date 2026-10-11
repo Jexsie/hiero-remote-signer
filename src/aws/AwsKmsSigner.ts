@@ -8,8 +8,8 @@ import { PublicKey } from "@hiero-ledger/sdk";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 
 import { derSignatureToCompact, parseSpki } from "../der/index.js";
-import { KmsSignerError, KmsSignerErrorCodes } from "../errors/index.js";
-import type { HieroKeyType, HieroKmsSigner } from "../types/index.js";
+import { RemoteSignerError, RemoteSignerErrorCodes } from "../errors/index.js";
+import type { HieroKeyType, HieroRemoteSigner } from "../types/index.js";
 import type { AwsKmsSignerOptions } from "./AwsKmsSignerOptions.js";
 
 /**
@@ -40,7 +40,7 @@ const KEY_SPECS: Record<
  * Supported key specs are `ECC_SECG_P256K1` (Hiero ECDSA keys) and
  * `ECC_NIST_EDWARDS25519` (Hiero ED25519 keys).
  */
-export class AwsKmsSigner implements HieroKmsSigner {
+export class AwsKmsSigner implements HieroRemoteSigner {
     readonly keyType: HieroKeyType;
     readonly publicKey: PublicKey;
     /** The key ARN as reported by KMS, resolved from any alias. */
@@ -85,8 +85,8 @@ export class AwsKmsSigner implements HieroKmsSigner {
                 }),
             );
         } catch (cause) {
-            throw new KmsSignerError(
-                KmsSignerErrorCodes.KmsRequestFailed,
+            throw new RemoteSignerError(
+                RemoteSignerErrorCodes.BackendRequestFailed,
                 `GetPublicKey failed for ${options.keyId}`,
                 { cause },
             );
@@ -94,15 +94,15 @@ export class AwsKmsSigner implements HieroKmsSigner {
 
         const spec = response.KeySpec ? KEY_SPECS[response.KeySpec] : undefined;
         if (!spec) {
-            throw new KmsSignerError(
-                KmsSignerErrorCodes.UnsupportedKey,
+            throw new RemoteSignerError(
+                RemoteSignerErrorCodes.UnsupportedKey,
                 `KMS key spec ${response.KeySpec ?? "unknown"} is not supported; ` +
                     `use ECC_SECG_P256K1 or ECC_NIST_EDWARDS25519`,
             );
         }
         if (response.KeyUsage !== "SIGN_VERIFY") {
-            throw new KmsSignerError(
-                KmsSignerErrorCodes.KeyNotUsable,
+            throw new RemoteSignerError(
+                RemoteSignerErrorCodes.KeyNotUsable,
                 `KMS key usage is ${response.KeyUsage ?? "unknown"}; SIGN_VERIFY is required`,
             );
         }
@@ -110,22 +110,22 @@ export class AwsKmsSigner implements HieroKmsSigner {
             response.SigningAlgorithms &&
             !response.SigningAlgorithms.includes(spec.algorithm)
         ) {
-            throw new KmsSignerError(
-                KmsSignerErrorCodes.KeyNotUsable,
+            throw new RemoteSignerError(
+                RemoteSignerErrorCodes.KeyNotUsable,
                 `KMS key does not offer signing algorithm ${spec.algorithm}`,
             );
         }
         if (!response.PublicKey) {
-            throw new KmsSignerError(
-                KmsSignerErrorCodes.MalformedDer,
+            throw new RemoteSignerError(
+                RemoteSignerErrorCodes.MalformedDer,
                 "GetPublicKey returned no public key",
             );
         }
 
         const parsed = parseSpki(response.PublicKey);
         if (parsed.keyType !== spec.keyType) {
-            throw new KmsSignerError(
-                KmsSignerErrorCodes.UnsupportedKey,
+            throw new RemoteSignerError(
+                RemoteSignerErrorCodes.UnsupportedKey,
                 `KMS reported ${response.KeySpec} but returned a ${parsed.keyType} public key`,
             );
         }
@@ -163,8 +163,8 @@ export class AwsKmsSigner implements HieroKmsSigner {
             messageType = "DIGEST";
         } else {
             if (bodyBytes.length > AWS_KMS_MAX_RAW_MESSAGE_BYTES) {
-                throw new KmsSignerError(
-                    KmsSignerErrorCodes.MessageRejected,
+                throw new RemoteSignerError(
+                    RemoteSignerErrorCodes.MessageRejected,
                     `transaction body is ${bodyBytes.length} bytes; AWS KMS signs at most ` +
                         `${AWS_KMS_MAX_RAW_MESSAGE_BYTES} bytes with Ed25519. Use a secp256k1 key ` +
                         `or reduce the body size (for example, a smaller file chunk size).`,
@@ -186,16 +186,16 @@ export class AwsKmsSigner implements HieroKmsSigner {
                 }),
             );
         } catch (cause) {
-            throw new KmsSignerError(
-                KmsSignerErrorCodes.KmsRequestFailed,
+            throw new RemoteSignerError(
+                RemoteSignerErrorCodes.BackendRequestFailed,
                 `Sign failed for ${this.keyArn}`,
                 { cause },
             );
         }
 
         if (!response.Signature) {
-            throw new KmsSignerError(
-                KmsSignerErrorCodes.SignatureInvalid,
+            throw new RemoteSignerError(
+                RemoteSignerErrorCodes.SignatureInvalid,
                 "KMS returned no signature",
             );
         }
@@ -206,14 +206,14 @@ export class AwsKmsSigner implements HieroKmsSigner {
                 : new Uint8Array(response.Signature);
 
         if (signature.length !== 64) {
-            throw new KmsSignerError(
-                KmsSignerErrorCodes.SignatureInvalid,
+            throw new RemoteSignerError(
+                RemoteSignerErrorCodes.SignatureInvalid,
                 `expected a 64-byte signature, got ${signature.length} bytes`,
             );
         }
         if (this.#verify && !this.publicKey.verify(bodyBytes, signature)) {
-            throw new KmsSignerError(
-                KmsSignerErrorCodes.SignatureInvalid,
+            throw new RemoteSignerError(
+                RemoteSignerErrorCodes.SignatureInvalid,
                 "KMS signature does not verify against the key's public key",
             );
         }

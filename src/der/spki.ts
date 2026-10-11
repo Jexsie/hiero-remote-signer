@@ -1,4 +1,4 @@
-import { KmsSignerError, KmsSignerErrorCodes } from "../errors/index.js";
+import { RemoteSignerError, RemoteSignerErrorCodes } from "../errors/index.js";
 import { DerTag, decodeOid, expectTag, readTlv } from "./tlv.js";
 
 /** Object identifiers used in SubjectPublicKeyInfo structures. */
@@ -32,8 +32,8 @@ export function parseSpki(der: Uint8Array): SpkiKey {
     const outer = readTlv(der, 0);
     expectTag(outer, DerTag.Sequence, "SubjectPublicKeyInfo SEQUENCE");
     if (outer.end !== der.length) {
-        throw new KmsSignerError(
-            KmsSignerErrorCodes.MalformedDer,
+        throw new RemoteSignerError(
+            RemoteSignerErrorCodes.MalformedDer,
             "trailing bytes after SubjectPublicKeyInfo",
         );
     }
@@ -44,8 +44,8 @@ export function parseSpki(der: Uint8Array): SpkiKey {
     expectTag(bitString, DerTag.BitString, "subjectPublicKey BIT STRING");
 
     if (bitString.value[0] !== 0x00) {
-        throw new KmsSignerError(
-            KmsSignerErrorCodes.MalformedDer,
+        throw new RemoteSignerError(
+            RemoteSignerErrorCodes.MalformedDer,
             "BIT STRING has unused bits",
         );
     }
@@ -57,8 +57,8 @@ export function parseSpki(der: Uint8Array): SpkiKey {
 
     if (algorithmOid === OID.ed25519) {
         if (keyBytes.length !== 32) {
-            throw new KmsSignerError(
-                KmsSignerErrorCodes.MalformedDer,
+            throw new RemoteSignerError(
+                RemoteSignerErrorCodes.MalformedDer,
                 `Ed25519 key must be 32 bytes, got ${keyBytes.length}`,
             );
         }
@@ -70,8 +70,8 @@ export function parseSpki(der: Uint8Array): SpkiKey {
         expectTag(curve, DerTag.ObjectIdentifier, "named curve OID");
         const curveOid = decodeOid(curve.value);
         if (curveOid !== OID.secp256k1) {
-            throw new KmsSignerError(
-                KmsSignerErrorCodes.UnsupportedKey,
+            throw new RemoteSignerError(
+                RemoteSignerErrorCodes.UnsupportedKey,
                 `EC curve ${curveOid} is not secp256k1; Hiero networks only verify secp256k1 ECDSA keys`,
             );
         }
@@ -81,8 +81,8 @@ export function parseSpki(der: Uint8Array): SpkiKey {
         };
     }
 
-    throw new KmsSignerError(
-        KmsSignerErrorCodes.UnsupportedKey,
+    throw new RemoteSignerError(
+        RemoteSignerErrorCodes.UnsupportedKey,
         `public key algorithm ${algorithmOid} is not supported`,
     );
 }
@@ -93,8 +93,8 @@ export function compressSecp256k1Point(point: Uint8Array): Uint8Array {
         return new Uint8Array(point);
     }
     if (point.length !== 65 || point[0] !== 0x04) {
-        throw new KmsSignerError(
-            KmsSignerErrorCodes.MalformedDer,
+        throw new RemoteSignerError(
+            RemoteSignerErrorCodes.MalformedDer,
             "invalid secp256k1 public key point encoding",
         );
     }

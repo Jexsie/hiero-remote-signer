@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { Client, PrivateKey } from "@hiero-ledger/sdk";
 
 import { setClientOperator } from "../../../src/client/index.js";
-import type { HieroKmsSigner } from "../../../src/types/index.js";
+import type { HieroRemoteSigner } from "../../../src/types/index.js";
 
 describe("setClientOperator", () => {
     it("sets the signer's public key as the client operator", () => {
         const key = PrivateKey.generateED25519();
-        const signer: HieroKmsSigner = {
+        const signer: HieroRemoteSigner = {
             keyType: "ED25519",
             publicKey: key.publicKey,
             sign: (bodyBytes) => Promise.resolve(key.sign(bodyBytes)),

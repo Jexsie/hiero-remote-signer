@@ -1,2 +1,2 @@
 // Data model barrel export
-export type { HieroKeyType, HieroKmsSigner } from "./signer.js";
+export type { HieroKeyType, HieroRemoteSigner } from "./signer.js";

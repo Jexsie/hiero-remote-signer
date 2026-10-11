@@ -1,5 +1,5 @@
 {
-    "name": "hiero-kms-signer",
+    "name": "hiero-remote-signer",
     "version": "0.1.0",
     "description": "Sign Hiero network transactions with keys held in a cloud KMS. Private keys never leave the KMS.",
     "license": "Apache-2.0",

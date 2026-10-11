@@ -19,7 +19,7 @@ import { keccak_256 } from "@noble/hashes/sha3.js";
 
 import { AwsKmsSigner } from "../../../src/aws/index.js";
 import { setClientOperator } from "../../../src/client/index.js";
-import { KmsSignerErrorCodes } from "../../../src/errors/index.js";
+import { RemoteSignerErrorCodes } from "../../../src/errors/index.js";
 import { expectCodeAsync } from "../../utils/assertions.js";
 import { installFakeKms, makeKey } from "../../utils/fake-kms.js";
 import type { FakeKey } from "../../utils/fake-kms.js";
@@ -80,7 +80,7 @@ describe("AwsKmsSigner.create", () => {
             setup(key);
             await expectCodeAsync(
                 AwsKmsSigner.create({ keyId: key.keyId, client: client() }),
-                KmsSignerErrorCodes.UnsupportedKey,
+                RemoteSignerErrorCodes.UnsupportedKey,
             );
         },
     );
@@ -90,7 +90,7 @@ describe("AwsKmsSigner.create", () => {
         setup(key);
         await expectCodeAsync(
             AwsKmsSigner.create({ keyId: key.keyId, client: client() }),
-            KmsSignerErrorCodes.KeyNotUsable,
+            RemoteSignerErrorCodes.KeyNotUsable,
         );
     });
 
@@ -98,7 +98,7 @@ describe("AwsKmsSigner.create", () => {
         setup();
         const err = await expectCodeAsync(
             AwsKmsSigner.create({ keyId: "alias/missing", client: client() }),
-            KmsSignerErrorCodes.KmsRequestFailed,
+            RemoteSignerErrorCodes.BackendRequestFailed,
         );
         expect((err.cause as Error).name).toBe("NotFoundException");
     });
@@ -151,7 +151,7 @@ describe("AwsKmsSigner.sign (ECDSA secp256k1)", () => {
         });
         await expectCodeAsync(
             signer.sign(randomBytes(64)),
-            KmsSignerErrorCodes.SignatureInvalid,
+            RemoteSignerErrorCodes.SignatureInvalid,
         );
     });
 
@@ -196,7 +196,7 @@ describe("AwsKmsSigner.sign (Ed25519)", () => {
         });
         await expectCodeAsync(
             signer.sign(randomBytes(4097)),
-            KmsSignerErrorCodes.MessageRejected,
+            RemoteSignerErrorCodes.MessageRejected,
         );
         expect(m.commandCalls(SignCommand)).toHaveLength(0);
     });
@@ -297,7 +297,7 @@ it("reports the Ed25519 size limit clearly for large file appends", async () => 
 
     await expectCodeAsync(
         tx.signWith(signer.publicKey, signer.sign),
-        KmsSignerErrorCodes.MessageRejected,
+        RemoteSignerErrorCodes.MessageRejected,
     );
     network.close();
 });
@@ -349,7 +349,7 @@ describe("AwsKmsSigner defensive checks", () => {
         setup().on(GetPublicKeyCommand).resolves({});
         await expectCodeAsync(
             AwsKmsSigner.create({ keyId: "k", client: client() }),
-            KmsSignerErrorCodes.UnsupportedKey,
+            RemoteSignerErrorCodes.UnsupportedKey,
         );
 
         setup()
@@ -357,7 +357,7 @@ describe("AwsKmsSigner defensive checks", () => {
             .resolves({ KeySpec: "ECC_SECG_P256K1" });
         await expectCodeAsync(
             AwsKmsSigner.create({ keyId: "k", client: client() }),
-            KmsSignerErrorCodes.KeyNotUsable,
+            RemoteSignerErrorCodes.KeyNotUsable,
         );
     });
 
@@ -374,7 +374,7 @@ describe("AwsKmsSigner defensive checks", () => {
             });
         await expectCodeAsync(
             AwsKmsSigner.create({ keyId: key.keyId, client: client() }),
-            KmsSignerErrorCodes.KeyNotUsable,
+            RemoteSignerErrorCodes.KeyNotUsable,
         );
     });
 
@@ -385,7 +385,7 @@ describe("AwsKmsSigner defensive checks", () => {
         });
         await expectCodeAsync(
             AwsKmsSigner.create({ keyId: "k", client: client() }),
-            KmsSignerErrorCodes.MalformedDer,
+            RemoteSignerErrorCodes.MalformedDer,
         );
     });
 
@@ -398,7 +398,7 @@ describe("AwsKmsSigner defensive checks", () => {
         });
         await expectCodeAsync(
             AwsKmsSigner.create({ keyId: "k", client: client() }),
-            KmsSignerErrorCodes.UnsupportedKey,
+            RemoteSignerErrorCodes.UnsupportedKey,
         );
     });
 
@@ -426,7 +426,7 @@ describe("AwsKmsSigner defensive checks", () => {
         m.on(SignCommand).rejects(new Error("throttled"));
         const err = await expectCodeAsync(
             signer.sign(randomBytes(10)),
-            KmsSignerErrorCodes.KmsRequestFailed,
+            RemoteSignerErrorCodes.BackendRequestFailed,
         );
         expect((err.cause as Error).message).toBe("throttled");
     });
@@ -441,7 +441,7 @@ describe("AwsKmsSigner defensive checks", () => {
         m.on(SignCommand).resolves({});
         await expectCodeAsync(
             signer.sign(randomBytes(10)),
-            KmsSignerErrorCodes.SignatureInvalid,
+            RemoteSignerErrorCodes.SignatureInvalid,
         );
     });
 
@@ -455,7 +455,7 @@ describe("AwsKmsSigner defensive checks", () => {
         m.on(SignCommand).resolves({ Signature: new Uint8Array(63) });
         await expectCodeAsync(
             signer.sign(randomBytes(10)),
-            KmsSignerErrorCodes.SignatureInvalid,
+            RemoteSignerErrorCodes.SignatureInvalid,
         );
     });
 });
