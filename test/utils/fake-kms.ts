@@ -1,18 +1,22 @@
-import { generateKeyPairSync, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {
     GetPublicKeyCommand,
     KMSClient,
     SignCommand,
 } from "@aws-sdk/client-kms";
-import { secp256k1 } from "@noble/curves/secp256k1.js";
-import { ed25519 } from "@noble/curves/ed25519.js";
 import { mockClient } from "aws-sdk-client-mock";
+
+import {
+    generateKeyMaterial,
+    signEd25519,
+    signSecp256k1Digest,
+} from "./key-material.js";
+import type { KeyCurve, SignBehaviour } from "./key-material.js";
+
+export type { SignBehaviour } from "./key-material.js";
 
 export type FakeKeySpec =
     "ECC_SECG_P256K1" | "ECC_NIST_EDWARDS25519" | "ECC_NIST_P256" | "RSA_2048";
-
-/** Controls how the fake KMS misbehaves, to exercise the signer's defences. */
-export type SignBehaviour = "normal" | "always-high-s" | "corrupt";
 
 export interface FakeKey {
     keyId: string;
@@ -26,44 +30,19 @@ export interface FakeKey {
     behaviour: SignBehaviour;
 }
 
-const N = secp256k1.Point.CURVE().n;
-
-function b64urlToBytes(s: string): Uint8Array {
-    return new Uint8Array(Buffer.from(s, "base64url"));
-}
+const CURVES: Record<FakeKeySpec, KeyCurve> = {
+    ECC_SECG_P256K1: "secp256k1",
+    ECC_NIST_EDWARDS25519: "ed25519",
+    ECC_NIST_P256: "p256",
+    RSA_2048: "rsa",
+};
 
 export function makeKey(
     spec: FakeKeySpec,
     overrides: Partial<FakeKey> = {},
 ): FakeKey {
     const keyId = randomUUID();
-    let spki: Uint8Array;
-    let privateKey: Uint8Array = new Uint8Array();
-
-    if (spec === "ECC_SECG_P256K1" || spec === "ECC_NIST_P256") {
-        const pair = generateKeyPairSync("ec", {
-            namedCurve: spec === "ECC_SECG_P256K1" ? "secp256k1" : "prime256v1",
-        });
-        spki = new Uint8Array(
-            pair.publicKey.export({ type: "spki", format: "der" }),
-        );
-        privateKey = b64urlToBytes(
-            pair.privateKey.export({ format: "jwk" }).d!,
-        );
-    } else if (spec === "ECC_NIST_EDWARDS25519") {
-        const pair = generateKeyPairSync("ed25519");
-        spki = new Uint8Array(
-            pair.publicKey.export({ type: "spki", format: "der" }),
-        );
-        privateKey = b64urlToBytes(
-            pair.privateKey.export({ format: "jwk" }).d!,
-        );
-    } else {
-        const pair = generateKeyPairSync("rsa", { modulusLength: 2048 });
-        spki = new Uint8Array(
-            pair.publicKey.export({ type: "spki", format: "der" }),
-        );
-    }
+    const { spki, privateKey } = generateKeyMaterial(CURVES[spec]);
 
     return {
         keyId,
@@ -146,17 +125,11 @@ export function installFakeKms(keys: FakeKey[]) {
                     "test KMS requires a 32-byte DIGEST",
                 );
             }
-            let sig = secp256k1.Signature.fromBytes(
-                secp256k1.sign(message, key.privateKey, {
-                    prehash: false,
-                    lowS: true,
-                }),
-                "compact",
+            signature = signSecp256k1Digest(
+                message,
+                key.privateKey,
+                key.behaviour,
             );
-            if (key.behaviour === "always-high-s") {
-                sig = new secp256k1.Signature(sig.r, N - sig.s);
-            }
-            signature = sig.toBytes("der");
         } else if (key.spec === "ECC_NIST_EDWARDS25519") {
             if (
                 input.MessageType !== "RAW" ||
@@ -173,7 +146,7 @@ export function installFakeKms(keys: FakeKey[]) {
                     "Message exceeds 4096 bytes",
                 );
             }
-            signature = ed25519.sign(message, key.privateKey);
+            signature = signEd25519(message, key.privateKey, key.behaviour);
         } else {
             throw new KmsError(
                 "UnsupportedOperationException",
@@ -181,10 +154,6 @@ export function installFakeKms(keys: FakeKey[]) {
             );
         }
 
-        if (key.behaviour === "corrupt") {
-            signature = new Uint8Array(signature);
-            signature[signature.length - 1]! ^= 0x01;
-        }
         return {
             KeyId: key.arn,
             Signature: signature,
