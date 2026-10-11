@@ -34,11 +34,43 @@ export function derSignatureToCompact(der: Uint8Array): Uint8Array {
         );
     }
 
-    const lowS = s.value > SECP256K1_HALF_N ? SECP256K1_N - s.value : s.value;
+    return toLowSCompact(r.value, s.value);
+}
+
+/**
+ * Validates a 64-byte `r || s` ECDSA signature (the JWS form, RFC 7518) and
+ * returns it with `s` normalized to the lower half of the curve order, as
+ * Hiero requires. See {@link derSignatureToCompact} for why.
+ */
+export function normalizeCompactSignature(compact: Uint8Array): Uint8Array {
+    if (compact.length !== 64) {
+        throw new RemoteSignerError(
+            RemoteSignerErrorCodes.MalformedSignature,
+            `expected a 64-byte r || s signature, got ${compact.length} bytes`,
+        );
+    }
+    const r = checkScalar(bytesToBigInt(compact.subarray(0, 32)), "r");
+    const s = checkScalar(bytesToBigInt(compact.subarray(32)), "s");
+    return toLowSCompact(r, s);
+}
+
+function toLowSCompact(r: bigint, s: bigint): Uint8Array {
+    const lowS = s > SECP256K1_HALF_N ? SECP256K1_N - s : s;
     const out = new Uint8Array(64);
-    out.set(bigIntTo32Bytes(r.value), 0);
+    out.set(bigIntTo32Bytes(r), 0);
     out.set(bigIntTo32Bytes(lowS), 32);
     return out;
+}
+
+/** Throws unless `value` is in [1, n-1]. */
+function checkScalar(value: bigint, name: string): bigint {
+    if (value === 0n || value >= SECP256K1_N) {
+        throw new RemoteSignerError(
+            RemoteSignerErrorCodes.MalformedSignature,
+            `${name} is out of range`,
+        );
+    }
+    return value;
 }
 
 /** Reads a DER INTEGER that must be a positive value in [1, n-1]. */
@@ -61,14 +93,7 @@ function readScalar(
             `${name} is negative`,
         );
     }
-    const value = bytesToBigInt(tlv.value);
-    if (value === 0n || value >= SECP256K1_N) {
-        throw new RemoteSignerError(
-            RemoteSignerErrorCodes.MalformedSignature,
-            `${name} is out of range`,
-        );
-    }
-    return { value, end: tlv.end };
+    return { value: checkScalar(bytesToBigInt(tlv.value), name), end: tlv.end };
 }
 
 function bytesToBigInt(bytes: Uint8Array): bigint {

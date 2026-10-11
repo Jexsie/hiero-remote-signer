@@ -4,7 +4,10 @@ import { PublicKey } from "@hiero-ledger/sdk";
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 
-import { derSignatureToCompact } from "../../../src/der/index.js";
+import {
+    derSignatureToCompact,
+    normalizeCompactSignature,
+} from "../../../src/der/index.js";
 import { SECP256K1_N } from "../../../src/der/signature.js";
 import {
     RemoteSignerError,
@@ -125,5 +128,59 @@ describe("derSignatureToCompact", () => {
                 expect(e).toBeInstanceOf(RemoteSignerError);
             }
         }
+    });
+});
+
+describe("normalizeCompactSignature", () => {
+    const priv = secp256k1.utils.randomSecretKey();
+    const pub = PublicKey.fromBytesECDSA(secp256k1.getPublicKey(priv, true));
+
+    function compactSign(message: Uint8Array, highS: boolean): Uint8Array {
+        const sig = secp256k1.Signature.fromBytes(
+            secp256k1.sign(keccak_256(message), priv, {
+                prehash: false,
+                lowS: true,
+            }),
+            "compact",
+        );
+        return (
+            highS ? new secp256k1.Signature(sig.r, SECP256K1_N - sig.s) : sig
+        ).toBytes("compact");
+    }
+
+    it("passes a low-S signature through unchanged", () => {
+        const msg = randomBytes(100);
+        const sig = compactSign(msg, false);
+        expect(normalizeCompactSignature(sig)).toEqual(sig);
+    });
+
+    it("normalizes high-S so the Hiero SDK accepts it", () => {
+        const msg = randomBytes(100);
+        const sig = compactSign(msg, true);
+        expect(pub.verify(msg, sig)).toBe(false);
+
+        const out = normalizeCompactSignature(sig);
+        expect(sValue(out) <= HALF_N).toBe(true);
+        expect(pub.verify(msg, out)).toBe(true);
+    });
+
+    it("rejects wrong lengths and out-of-range scalars", () => {
+        expectCode(
+            () => normalizeCompactSignature(new Uint8Array(63)),
+            RemoteSignerErrorCodes.MalformedSignature,
+        );
+        const zeroR = new Uint8Array(64);
+        zeroR[63] = 1;
+        expectCode(
+            () => normalizeCompactSignature(zeroR),
+            RemoteSignerErrorCodes.MalformedSignature,
+        );
+        const bigS = new Uint8Array(64);
+        bigS[31] = 1;
+        bigS.set(Buffer.from(SECP256K1_N.toString(16), "hex"), 32);
+        expectCode(
+            () => normalizeCompactSignature(bigS),
+            RemoteSignerErrorCodes.MalformedSignature,
+        );
     });
 });
