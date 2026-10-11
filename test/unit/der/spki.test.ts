@@ -66,6 +66,24 @@ describe("compressSecp256k1Point", () => {
         expect(out).not.toBe(compressed);
     });
 
+    it("rejects an uncompressed point that is not on the curve", () => {
+        const uncompressed = secp256k1.getPublicKey(priv, false);
+        uncompressed[64]! ^= 0x02; // keeps y's parity, breaks the curve equation
+        expectCode(
+            () => compressSecp256k1Point(uncompressed),
+            RemoteSignerErrorCodes.MalformedDer,
+        );
+    });
+
+    it("rejects coordinates outside the field", () => {
+        const point = new Uint8Array(65).fill(0xff);
+        point[0] = 0x04;
+        expectCode(
+            () => compressSecp256k1Point(point),
+            RemoteSignerErrorCodes.MalformedDer,
+        );
+    });
+
     it("rejects other encodings", () => {
         expectCode(
             () => compressSecp256k1Point(new Uint8Array(64)),

@@ -98,8 +98,28 @@ export function compressSecp256k1Point(point: Uint8Array): Uint8Array {
             "invalid secp256k1 public key point encoding",
         );
     }
+    // Compression keeps only x and the parity of y, so an off-curve point
+    // would silently become a different, valid key. Reject it instead.
+    if (!isOnSecp256k1(point.subarray(1, 33), point.subarray(33))) {
+        throw new RemoteSignerError(
+            RemoteSignerErrorCodes.MalformedDer,
+            "secp256k1 public key point is not on the curve",
+        );
+    }
     const out = new Uint8Array(33);
     out[0] = (point[64]! & 1) === 0 ? 0x02 : 0x03;
     out.set(point.subarray(1, 33), 1);
     return out;
+}
+
+/** Field prime of secp256k1. */
+const SECP256K1_P =
+    0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
+
+/** Whether (x, y) satisfies y^2 = x^3 + 7 over the secp256k1 field. */
+function isOnSecp256k1(xBytes: Uint8Array, yBytes: Uint8Array): boolean {
+    const x = BigInt("0x" + Buffer.from(xBytes).toString("hex"));
+    const y = BigInt("0x" + Buffer.from(yBytes).toString("hex"));
+    if (x >= SECP256K1_P || y >= SECP256K1_P) return false;
+    return (y * y - (x * x * x + 7n)) % SECP256K1_P === 0n;
 }
