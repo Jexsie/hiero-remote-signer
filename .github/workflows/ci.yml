@@ -1,0 +1,58 @@
+name: CI
+
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    build:
+        name: Build and Test (Node ${{ matrix.node-version }})
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                node-version: [20, 22, 24]
+        steps:
+            - name: Harden Runner
+              uses: step-security/harden-runner@351661ca32ac09a36dc5ee2d536e3128f2a3c8ed # v2.22.0
+              with:
+                  egress-policy: audit
+
+            - name: Checkout code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Setup Node
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              with:
+                  node-version: ${{ matrix.node-version }}
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Prettier
+              run: npm run format:check
+
+            - name: Build package
+              run: npm run build
+
+            # Sanity check that the package's published types are complete
+            - name: Check published types
+              run: npx attw --pack --profile node16
+
+            - name: Run unit tests
+              run: npm run test:unit:coverage
