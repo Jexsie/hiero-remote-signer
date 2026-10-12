@@ -94,6 +94,9 @@
         "README.md",
         "LICENSE"
     ],
+    "workspaces": [
+        "example"
+    ],
     "engines": {
         "node": ">=20"
     },
