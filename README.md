@@ -164,6 +164,8 @@ const client = setClientOperator(Client.forNetwork({ "127.0.0.1:50211": "0.0.3" 
 await tx.freezeWith(client).signWith(signer.publicKey, signer.sign);
 ```
 
+For a runnable walkthrough against Hedera testnet, including setting up a key on each backend, see [example/README.md](example/README.md).
+
 ## Flow
 
 ```
