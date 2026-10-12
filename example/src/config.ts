@@ -1,7 +1,16 @@
 import { existsSync } from "node:fs";
+import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
-import { AccountId, Client, PrivateKey } from "@hiero-ledger/sdk";
+import {
+    AccountId,
+    Client,
+    Hbar,
+    MirrorNodeAccountBalanceQuery,
+    MirrorNodeStatusError,
+    PrivateKey,
+    Status,
+} from "@hiero-ledger/sdk";
 
 // Settings come from example/.env (copy .env.example) or the environment.
 const envFile = fileURLToPath(new URL("../.env", import.meta.url));
@@ -71,4 +80,43 @@ export function remoteAccountId(): AccountId {
 
 export function hashscanAccount(id: AccountId | string): string {
     return `https://hashscan.io/${network()}/account/${id.toString()}`;
+}
+
+/**
+ * Reads an account's HBAR balance from the mirror node. The mirror node
+ * trails consensus by a few seconds, so when `previous` is given this polls
+ * until the balance differs from it, and an account the mirror node does
+ * not know yet is retried rather than reported as missing.
+ */
+export async function mirrorBalance(
+    client: Client,
+    accountId: AccountId,
+    previous?: Hbar,
+): Promise<Hbar> {
+    let latest: Hbar | undefined;
+    for (let attempt = 0; attempt < 20; attempt++) {
+        try {
+            latest = (
+                await new MirrorNodeAccountBalanceQuery()
+                    .setAccountId(accountId)
+                    .execute(client)
+            ).hbars;
+            if (
+                !previous ||
+                !latest.toTinybars().equals(previous.toTinybars())
+            ) {
+                return latest;
+            }
+        } catch (error) {
+            const notIndexedYet =
+                error instanceof MirrorNodeStatusError &&
+                error.status === Status.InvalidAccountId;
+            if (!notIndexedYet) throw error;
+        }
+        await sleep(1000);
+    }
+    if (latest) return latest;
+    throw new Error(
+        `the mirror node has no balance for ${accountId.toString()} yet`,
+    );
 }

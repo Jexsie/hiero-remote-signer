@@ -3,17 +3,13 @@
  * client's operator is the remote signer, so every transaction it sends is
  * signed by the backend and no private key is in this process.
  */
-import {
-    AccountBalanceQuery,
-    AccountId,
-    Hbar,
-    TransferTransaction,
-} from "@hiero-ledger/sdk";
+import { AccountId, Hbar, TransferTransaction } from "@hiero-ledger/sdk";
 import { setClientOperator } from "hiero-remote-signer";
 
 import {
     fundingAccount,
     hashscanAccount,
+    mirrorBalance,
     networkClient,
     optional,
     remoteAccountId,
@@ -29,11 +25,9 @@ const recipient = AccountId.fromString(
 await withSigner(async ({ backend, signer }) => {
     const client = setClientOperator(networkClient(), sender, signer);
     try {
-        const before = await new AccountBalanceQuery()
-            .setAccountId(sender)
-            .execute(client);
+        const before = await mirrorBalance(client, sender);
         console.log(
-            `${sender.toString()} holds ${before.hbars.toString()}; sending ${amount.toString()} to ${recipient.toString()}`,
+            `${sender.toString()} holds ${before.toString()}; sending ${amount.toString()} to ${recipient.toString()}`,
         );
 
         const response = await new TransferTransaction()
@@ -43,12 +37,10 @@ await withSigner(async ({ backend, signer }) => {
             .execute(client);
         const receipt = await response.getReceipt(client);
 
-        const after = await new AccountBalanceQuery()
-            .setAccountId(sender)
-            .execute(client);
+        const after = await mirrorBalance(client, sender, before);
         console.log(`Status:         ${receipt.status.toString()}`);
         console.log(`Transaction ID: ${response.transactionId.toString()}`);
-        console.log(`New balance:    ${after.hbars.toString()}`);
+        console.log(`New balance:    ${after.toString()}`);
         console.log(`HashScan:       ${hashscanAccount(sender)}`);
     } finally {
         client.close();
