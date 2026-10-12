@@ -50,6 +50,10 @@ jobs:
             - name: Build package
               run: npm run build
 
+            # The example imports the built package, so check it after the build
+            - name: Typecheck example
+              run: npm run typecheck -w example
+
             # Sanity check that the package's published types are complete
             - name: Check published types
               run: npx attw --pack --profile node16
