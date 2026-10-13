@@ -120,6 +120,11 @@ function decodeEcPoint(value: Uint8Array, rawLengths: number[]): Uint8Array {
 export class Pkcs11Signer implements HieroRemoteSigner {
     readonly keyType: HieroKeyType;
     readonly publicKey: PublicKey;
+    /**
+     * Signs serialized TransactionBody bytes. A bound function, so it can be
+     * passed to the SDK as `signer.sign`.
+     */
+    readonly sign: (bodyBytes: Uint8Array) => Promise<Uint8Array>;
 
     readonly #module: Pkcs11Module;
     readonly #session: Buffer;
@@ -145,8 +150,7 @@ export class Pkcs11Signer implements HieroRemoteSigner {
         this.publicKey = params.publicKey;
         this.#verify = params.verify;
         this.#release = params.release;
-        // Bind so `signer.sign` can be passed to the SDK as a bare function.
-        this.sign = this.sign.bind(this);
+        this.sign = (bodyBytes) => this.#sign(bodyBytes);
     }
 
     /** Opens a session on the token, logs in and loads the key pair. */
@@ -345,7 +349,7 @@ export class Pkcs11Signer implements HieroRemoteSigner {
      * Hiero verifies, and signed with `CKM_ECDSA`, which signs a supplied
      * digest. For Ed25519 keys the raw bytes are signed with `CKM_EDDSA`.
      */
-    sign(bodyBytes: Uint8Array): Promise<Uint8Array> {
+    #sign(bodyBytes: Uint8Array): Promise<Uint8Array> {
         const result = this.#queue.then(() => this.#signNow(bodyBytes));
         this.#queue = result.catch(() => undefined);
         return result;

@@ -43,6 +43,11 @@ function requireCredential(
 export class AzureKeyVaultSigner implements HieroRemoteSigner {
     readonly keyType: HieroKeyType = "ECDSA_SECP256K1";
     readonly publicKey: PublicKey;
+    /**
+     * Signs serialized TransactionBody bytes. A bound function, so it can be
+     * passed to the SDK as `signer.sign`.
+     */
+    readonly sign: (bodyBytes: Uint8Array) => Promise<Uint8Array>;
     /** The versioned key identifier the signer is pinned to. */
     readonly keyId: string;
 
@@ -59,8 +64,7 @@ export class AzureKeyVaultSigner implements HieroRemoteSigner {
         this.keyId = params.keyId;
         this.publicKey = params.publicKey;
         this.#verify = params.verify;
-        // Bind so `signer.sign` can be passed to the SDK as a bare function.
-        this.sign = this.sign.bind(this);
+        this.sign = (bodyBytes) => this.#sign(bodyBytes);
     }
 
     /** Fetches the public key for `keyId` and validates that it can sign for Hiero. */
@@ -147,7 +151,7 @@ export class AzureKeyVaultSigner implements HieroRemoteSigner {
      * only ever signs a supplied digest, so the SHA-256 in the algorithm name
      * is never applied.
      */
-    async sign(bodyBytes: Uint8Array): Promise<Uint8Array> {
+    async #sign(bodyBytes: Uint8Array): Promise<Uint8Array> {
         let result;
         try {
             result = await this.#client.sign("ES256K", keccak_256(bodyBytes));

@@ -51,6 +51,11 @@ function toBytes(value: Uint8Array | string): Uint8Array {
 export class GcpKmsSigner implements HieroRemoteSigner {
     readonly keyType: HieroKeyType;
     readonly publicKey: PublicKey;
+    /**
+     * Signs serialized TransactionBody bytes. A bound function, so it can be
+     * passed to the SDK as `signer.sign`.
+     */
+    readonly sign: (bodyBytes: Uint8Array) => Promise<Uint8Array>;
     /** The key version resource name as reported by Cloud KMS. */
     readonly keyVersionName: string;
 
@@ -69,8 +74,7 @@ export class GcpKmsSigner implements HieroRemoteSigner {
         this.keyType = params.keyType;
         this.publicKey = params.publicKey;
         this.#verify = params.verify;
-        // Bind so `signer.sign` can be passed to the SDK as a bare function.
-        this.sign = this.sign.bind(this);
+        this.sign = (bodyBytes) => this.#sign(bodyBytes);
     }
 
     /** Fetches the public key for the key version and validates that it can sign for Hiero. */
@@ -150,7 +154,7 @@ export class GcpKmsSigner implements HieroRemoteSigner {
      * algorithm expects; Cloud KMS signs the 32 bytes as given. For Ed25519
      * keys Cloud KMS signs the raw bytes (PureEdDSA) passed in `data`.
      */
-    async sign(bodyBytes: Uint8Array): Promise<Uint8Array> {
+    async #sign(bodyBytes: Uint8Array): Promise<Uint8Array> {
         const name = this.keyVersionName;
         const isEcdsa = this.keyType === "ECDSA_SECP256K1";
         const message = isEcdsa ? keccak_256(bodyBytes) : bodyBytes;

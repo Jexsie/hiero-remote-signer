@@ -93,6 +93,11 @@ class TransitApi {
 export class VaultTransitSigner implements HieroRemoteSigner {
     readonly keyType: HieroKeyType = "ED25519";
     readonly publicKey: PublicKey;
+    /**
+     * Signs serialized TransactionBody bytes. A bound function, so it can be
+     * passed to the SDK as `signer.sign`.
+     */
+    readonly sign: (bodyBytes: Uint8Array) => Promise<Uint8Array>;
     /** Name of the transit key. */
     readonly keyName: string;
     /** The key version the signer is pinned to. */
@@ -113,8 +118,7 @@ export class VaultTransitSigner implements HieroRemoteSigner {
         this.keyVersion = params.keyVersion;
         this.publicKey = params.publicKey;
         this.#verify = params.verify;
-        // Bind so `signer.sign` can be passed to the SDK as a bare function.
-        this.sign = this.sign.bind(this);
+        this.sign = (bodyBytes) => this.#sign(bodyBytes);
     }
 
     /** Reads the transit key and validates that it can sign for Hiero. */
@@ -177,7 +181,7 @@ export class VaultTransitSigner implements HieroRemoteSigner {
      * Signs serialized TransactionBody bytes. Vault signs the raw bytes with
      * pure Ed25519, which is what Hiero verifies.
      */
-    async sign(bodyBytes: Uint8Array): Promise<Uint8Array> {
+    async #sign(bodyBytes: Uint8Array): Promise<Uint8Array> {
         let response;
         try {
             response = await this.#api.sign(

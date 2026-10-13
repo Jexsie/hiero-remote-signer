@@ -43,6 +43,11 @@ const KEY_SPECS: Record<
 export class AwsKmsSigner implements HieroRemoteSigner {
     readonly keyType: HieroKeyType;
     readonly publicKey: PublicKey;
+    /**
+     * Signs serialized TransactionBody bytes. A bound function, so it can be
+     * passed to the SDK as `signer.sign`.
+     */
+    readonly sign: (bodyBytes: Uint8Array) => Promise<Uint8Array>;
     /** The key ARN as reported by KMS, resolved from any alias. */
     readonly keyArn: string;
 
@@ -67,8 +72,7 @@ export class AwsKmsSigner implements HieroRemoteSigner {
         this.publicKey = params.publicKey;
         this.#verify = params.verify;
         this.#grantTokens = params.grantTokens;
-        // Bind so `signer.sign` can be passed to the SDK as a bare function.
-        this.sign = this.sign.bind(this);
+        this.sign = (bodyBytes) => this.#sign(bodyBytes);
     }
 
     /** Fetches the public key for `keyId` and validates that it can sign for Hiero. */
@@ -154,7 +158,7 @@ export class AwsKmsSigner implements HieroRemoteSigner {
      * DIGEST`). KMS does not offer Keccak itself, so it cannot hash the raw
      * message. For Ed25519 keys KMS signs the raw bytes (`MessageType: RAW`).
      */
-    async sign(bodyBytes: Uint8Array): Promise<Uint8Array> {
+    async #sign(bodyBytes: Uint8Array): Promise<Uint8Array> {
         let message: Uint8Array;
         let messageType: "DIGEST" | "RAW";
 
