@@ -101,7 +101,7 @@
         "node": ">=20"
     },
     "scripts": {
-        "prepare": "npm run build",
+        "prepare": "husky && npm run build",
         "build": "npm run build:test && npm run clean && npm run build:compile",
         "build:compile": "node node_modules/typescript-7/bin/tsc -p tsconfig.json && babel src -d dist --extensions .ts --out-file-extension .cjs --source-maps && node scripts/generate-cts-declarations.js dist",
         "build:test": "node node_modules/typescript-7/bin/tsc --noEmit -p test/tsconfig.test.json",
@@ -161,11 +161,20 @@
         "eslint": "^10.12.0",
         "eslint-config-prettier": "^10.1.8",
         "globals": "^17.13.0",
+        "husky": "^9.1.7",
+        "lint-staged": "^17.6.0",
         "pkcs11js": "^2.1.7",
         "prettier": "^3.9.9",
         "typescript": "~6.0.3",
         "typescript-7": "npm:typescript@^7.0.2",
         "typescript-eslint": "^8.71.2",
         "vitest": "^5.0.3"
+    },
+    "lint-staged": {
+        "*.{ts,js,cjs}": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "*.{json,yml,yaml}": "prettier --write"
     }
 }
