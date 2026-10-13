@@ -9,11 +9,11 @@
         "node": ">=20.12"
     },
     "scripts": {
-        "show-key": "tsx src/show-key.ts",
-        "create-account": "tsx src/create-account.ts",
-        "transfer": "tsx src/transfer.ts",
-        "co-sign": "tsx src/co-sign.ts",
-        "pkcs11:keygen": "tsx src/pkcs11-keygen.ts",
+        "aws": "tsx src/aws.ts",
+        "gcp": "tsx src/gcp.ts",
+        "azure": "tsx src/azure.ts",
+        "vault": "tsx src/vault.ts",
+        "pkcs11": "tsx src/pkcs11.ts",
         "typecheck": "tsc --noEmit -p tsconfig.json"
     },
     "dependencies": {

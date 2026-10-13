@@ -7,15 +7,26 @@ It uses two accounts:
 - **Funding account:** the testnet account you already have, with its private key held locally. It pays to create the second account.
 - **Remote-key account:** a new account created by the example. It can only be controlled through the remote signer.
 
-The example has five scripts, run from the `example` folder:
+There is one self-contained script per backend in `src/`. Each one reads top to bottom, with every step written out in that file:
 
-| Script                   | What it does                                                                                                                          |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run show-key`       | Connects to the backend, prints the public key and checks a test signature. It sends nothing to the network.                          |
-| `npm run create-account` | Creates the remote-key account. The funding account pays the fee and the initial balance.                                             |
-| `npm run transfer`       | Sends HBAR as the remote-key account, which pays the fee too. Its client uses the remote signer as the operator (`setClientOperator`). |
-| `npm run co-sign`        | The funding account pays the fee and the remote key approves the debit with `signWith`. This is how a treasury key approves a payout. |
-| `npm run pkcs11:keygen`  | Generates a key pair on a PKCS#11 token. Use it only with the PKCS#11 backend.                                                        |
+| Command          | File            | Backend                              |
+| ---------------- | --------------- | ------------------------------------ |
+| `npm run aws`    | `src/aws.ts`    | AWS KMS                              |
+| `npm run gcp`    | `src/gcp.ts`    | Google Cloud KMS                     |
+| `npm run azure`  | `src/azure.ts`  | Azure Key Vault                      |
+| `npm run vault`  | `src/vault.ts`  | HashiCorp Vault or OpenBao transit   |
+| `npm run pkcs11` | `src/pkcs11.ts` | PKCS#11 token (SoftHSM or a real HSM) |
+
+Every script runs the same eight steps:
+
+1. **Settings:** reads `example/.env`.
+2. **Connect:** connects to the backend and loads the public key. The PKCS#11 script first generates the key pair on the token if it doesn't exist yet.
+3. **Create the account:** creates a testnet account whose only key is the remote key, with 10 HBAR. Your funding account pays.
+4. **Transfer as operator:** the new account sends 1 HBAR to your funding account. The new account pays the fee, and every signature comes from the backend (`setClientOperator`).
+5. **Co-signed transfer:** 1 HBAR more, with the fee paid by your funding account. The remote key approves the debit with `signWith`, which is how a treasury or custody key approves a payout prepared by another service.
+6. **Balance:** reads the new account's balance from the mirror node. The mirror node trails the network by a few seconds, so the script waits until both transfers show up.
+7. **Clean up:** deletes the new account, which is also signed by the remote key, and returns the remaining HBAR to your funding account. A run costs only transaction fees.
+8. **Results:** prints a table with each transaction's status and ID, plus a HashScan link.
 
 Pick **one** backend in [step 2](#2-set-up-one-backend). The rest of the steps are the same for every backend.
 
@@ -40,7 +51,6 @@ Pick **one** backend in [step 2](#2-set-up-one-backend). The rest of the steps a
     You need an account ID and private key from [portal.hedera.com](https://portal.hedera.com): sign in, choose **Testnet**, and create an account if you don't have one.
 
     ```sh
-    HIERO_NETWORK=testnet
     FUNDING_ACCOUNT_ID=0.0.1234567
     FUNDING_PRIVATE_KEY=0x...        # the HEX key from the portal
     FUNDING_KEY_TYPE=ecdsa           # ecdsa for the portal's HEX ECDSA key,
@@ -48,7 +58,7 @@ Pick **one** backend in [step 2](#2-set-up-one-backend). The rest of the steps a
                                      # ed25519 for a hex Ed25519 key
     ```
 
-    The account needs about 15 HBAR. If it runs low, refill it from the portal faucet.
+    The account needs about 15 HBAR; most of it comes back at the end of each run. If it runs low, refill it from the portal faucet.
 
 `.env` is git-ignored, so keep secrets there and nowhere else.
 
@@ -114,7 +124,6 @@ Supported key types:
 5. **Settings.** Set these in `.env`:
 
     ```sh
-    REMOTE_SIGNER_BACKEND=aws
     AWS_KMS_KEY_ID=alias/hiero-operator
     AWS_REGION=eu-central-1
     AWS_PROFILE=hiero-signer
@@ -167,7 +176,6 @@ Supported key types:
 5. **Settings.** Set these in `.env`:
 
     ```sh
-    REMOTE_SIGNER_BACKEND=gcp
     GCP_KMS_KEY_VERSION=projects/<project-id>/locations/europe-west1/keyRings/hiero/cryptoKeys/hiero-operator/cryptoKeyVersions/1
     ```
 
@@ -215,7 +223,6 @@ Key Vault has no Ed25519 keys, so this option always gives you a secp256k1 (`P-2
 6. **Settings.** Set these in `.env`:
 
     ```sh
-    REMOTE_SIGNER_BACKEND=azure
     AZURE_KEY_VAULT_KEY_ID=https://<vault-name>.vault.azure.net/keys/hiero-operator/<version>
     ```
 
@@ -272,7 +279,6 @@ Transit only has Ed25519 keys. **Don't use `vault server -dev`** for this walkth
 6. **Settings.** Set these in `.env`:
 
     ```sh
-    REMOTE_SIGNER_BACKEND=vault
     VAULT_ADDR=http://127.0.0.1:8200
     VAULT_TOKEN=<token from step 5>
     VAULT_TRANSIT_KEY=hiero-operator
@@ -300,7 +306,6 @@ SoftHSM is a software token with the same PKCS#11 interface as a hardware HSM, s
 3. **Settings.** Set these in `.env`:
 
     ```sh
-    REMOTE_SIGNER_BACKEND=pkcs11
     PKCS11_LIBRARY=/opt/homebrew/lib/softhsm/libsofthsm2.so
     PKCS11_TOKEN_LABEL=hiero
     PKCS11_PIN=<user-pin>
@@ -310,61 +315,42 @@ SoftHSM is a software token with the same PKCS#11 interface as a hardware HSM, s
 
     On an Intel Mac, the library is at `/usr/local/lib/softhsm/libsofthsm2.so`.
 
-4. **Generate a non-extractable key pair on the token:**
-
-    ```sh
-    npm run pkcs11:keygen
-    ```
+    You don't need to generate a key yourself. On its first run, `npm run pkcs11` generates a non-extractable key pair with this label on the token, then uses it.
 
 The token's files are stored under Homebrew's `var/lib/softhsm/tokens`. Deleting them loses the key.
 
-## 3. Check the signer
+## 3. Run the walkthrough
 
-Run:
-
-```sh
-npm run show-key
-```
-
-It prints the backend, the key type, the public key in DER and raw form (and the EVM address for secp256k1), then checks a test signature. If this step fails, the problem is with backend access, not with Hedera.
-
-## 4. Create the remote-key account
-
-Run:
+Run the script for the backend you set up, from the `example` folder:
 
 ```sh
-npm run create-account
+npm run aws      # or gcp, azure, vault, pkcs11
 ```
 
-The funding account creates a new account whose key is the remote public key, with an initial balance of 10 HBAR (`INITIAL_BALANCE_HBAR`). Copy the printed line into `.env`:
+The output follows the eight steps and ends with a summary table:
 
-```sh
-REMOTE_ACCOUNT_ID=0.0.7654321
+```text
+Step 1: settings loaded
+  funding account: 0.0.1234567
+  ...
+Step 3: account created
+  account:     0.0.7654321
+...
+Step 8: results
+┌─────────┬────────────────────────┬───────────┬──────────────────────────────────────┐
+│ (index) │ step                   │ status    │ transaction                          │
+├─────────┼────────────────────────┼───────────┼──────────────────────────────────────┤
+│ 0       │ 'create account'       │ 'SUCCESS' │ '0.0.1234567@1760000000.000000000'   │
+│ ...                                                                                  │
+└─────────┴────────────────────────┴───────────┴──────────────────────────────────────┘
+History: https://hashscan.io/testnet/account/0.0.7654321
 ```
 
-Open the printed HashScan link. The account's key there matches the public key from step 3.
-
-## 5. Spend with the remote key
-
-1. **The remote-key account pays and signs.**
-
-    ```sh
-    npm run transfer
-    ```
-
-    This sends 1 HBAR (`TRANSFER_HBAR`) to the funding account, or to `RECIPIENT_ACCOUNT_ID` if you set it. The transaction ID is printed and the account's HashScan page shows the transfer. Every signature on it came from the backend.
-
-2. **Another account pays and the remote key co-signs.**
-
-    ```sh
-    npm run co-sign
-    ```
-
-    The funding account pays the fee and signs locally. The remote key signs the same frozen transaction through `signWith`, which approves the debit from the remote-key account.
+Open the HashScan link to see the account's key (the remote public key from step 2) and all four transactions. If the script stops at step 2, the problem is backend access, not Hedera.
 
 ## How it fits together
 
-Both scripts open the signer the same way:
+Stripped of logging, every script uses the package like this, shown here for AWS:
 
 ```ts
 import { AwsKmsSigner } from "hiero-remote-signer/aws";
@@ -379,11 +365,11 @@ const client = setClientOperator(Client.forTestnet(), accountId, signer);
 await transaction.freezeWith(otherClient).signWith(signer.publicKey, signer.sign);
 ```
 
-`src/signer.ts` shows the equivalent code for every backend. It imports the backends on demand, so only the client library of the backend you choose is loaded.
+Only the backend's signer class and its client library differ between the five scripts. Compare `src/aws.ts` with `src/vault.ts` to see the difference.
 
 ## Things to know
 
 - **One backend call per node.** The SDK signs a transaction separately for every node it might send it to, so each transaction makes several calls to the backend. This counts towards cloud KMS request charges and rate limits.
-- **The account is only as durable as the key.** If you delete the KMS key, the Vault data or the SoftHSM token, the remote-key account and its HBAR can no longer be used. To recover the HBAR first, run `npm run transfer` with `TRANSFER_HBAR` set to the balance minus a small fee.
+- **The account is only as durable as the key.** If you delete the KMS key, the Vault data or the SoftHSM token, the remote-key account and its HBAR can no longer be used. If a run stops after step 3, step 7 never ran: the account keeps its HBAR, and only the backend key can move it.
 - **Testnet resets.** Testnet is reset from time to time, and accounts created on it disappear.
-- **Mainnet is blocked on purpose.** `HIERO_NETWORK` only accepts `testnet` and `previewnet`.
+- **Testnet only.** The scripts use `Client.forTestnet()`, so they can't touch mainnet.
