@@ -32,8 +32,11 @@ import {
     Status,
     TransferTransaction,
 } from "@hiero-ledger/sdk";
-import { setClientOperator } from "hiero-remote-signer";
-import { Pkcs11Constants as C, Pkcs11Signer } from "hiero-remote-signer/pkcs11";
+import {
+    Pkcs11Constants as C,
+    Pkcs11Signer,
+    setClientOperator,
+} from "hiero-remote-signer/pkcs11";
 
 // ---------------------------------------------------------------------------
 // Step 1: read the settings from example/.env

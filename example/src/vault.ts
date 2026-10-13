@@ -30,8 +30,10 @@ import {
     Status,
     TransferTransaction,
 } from "@hiero-ledger/sdk";
-import { setClientOperator } from "hiero-remote-signer";
-import { VaultTransitSigner } from "hiero-remote-signer/vault";
+import {
+    setClientOperator,
+    VaultTransitSigner,
+} from "hiero-remote-signer/vault";
 
 // ---------------------------------------------------------------------------
 // Step 1: read the settings from example/.env

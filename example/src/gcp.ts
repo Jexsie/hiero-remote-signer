@@ -31,8 +31,7 @@ import {
     Status,
     TransferTransaction,
 } from "@hiero-ledger/sdk";
-import { setClientOperator } from "hiero-remote-signer";
-import { GcpKmsSigner } from "hiero-remote-signer/gcp";
+import { GcpKmsSigner, setClientOperator } from "hiero-remote-signer/gcp";
 
 // ---------------------------------------------------------------------------
 // Step 1: read the settings from example/.env

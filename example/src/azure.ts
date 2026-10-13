@@ -31,8 +31,10 @@ import {
     Status,
     TransferTransaction,
 } from "@hiero-ledger/sdk";
-import { setClientOperator } from "hiero-remote-signer";
-import { AzureKeyVaultSigner } from "hiero-remote-signer/azure";
+import {
+    AzureKeyVaultSigner,
+    setClientOperator,
+} from "hiero-remote-signer/azure";
 
 // ---------------------------------------------------------------------------
 // Step 1: read the settings from example/.env

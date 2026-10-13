@@ -31,8 +31,7 @@ import {
     Status,
     TransferTransaction,
 } from "@hiero-ledger/sdk";
-import { setClientOperator } from "hiero-remote-signer";
-import { AwsKmsSigner } from "hiero-remote-signer/aws";
+import { AwsKmsSigner, setClientOperator } from "hiero-remote-signer/aws";
 
 // ---------------------------------------------------------------------------
 // Step 1: read the settings from example/.env
