@@ -14,7 +14,7 @@
         "azure": "tsx src/azure.ts",
         "vault": "tsx src/vault.ts",
         "pkcs11": "tsx src/pkcs11.ts",
-        "typecheck": "tsc --noEmit -p tsconfig.json"
+        "typecheck": "node ../node_modules/typescript-7/bin/tsc --noEmit -p tsconfig.json"
     },
     "dependencies": {
         "@aws-sdk/client-kms": "^3.1149.0",

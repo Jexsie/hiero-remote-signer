@@ -41,7 +41,7 @@ function publicKeyClient(response: object): GcpKmsClient {
 function signResponseClient(key: FakeGcpKey, response: object): GcpKmsClient {
     const { fake } = createFakeGcpKms([key]);
     return {
-        getPublicKey: fake.getPublicKey,
+        getPublicKey: fake.getPublicKey.bind(fake),
         asymmetricSign: () => Promise.resolve([response]),
     } as unknown as GcpKmsClient;
 }
@@ -290,7 +290,7 @@ describe("GcpKmsSigner integrity checks", () => {
         const signer = await GcpKmsSigner.create({
             keyVersionName: key.name,
             client: {
-                getPublicKey: fake.getPublicKey,
+                getPublicKey: fake.getPublicKey.bind(fake),
                 asymmetricSign: () => Promise.reject(new Error("unavailable")),
             } as unknown as GcpKmsClient,
         });

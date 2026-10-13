@@ -154,6 +154,9 @@ export class Pkcs11Signer implements HieroRemoteSigner {
     }
 
     /** Opens a session on the token, logs in and loads the key pair. */
+    // async although PKCS#11 calls are synchronous, so failures reject the
+    // returned promise like every other backend's create().
+    // eslint-disable-next-line @typescript-eslint/require-await
     static async create(options: Pkcs11SignerOptions): Promise<Pkcs11Signer> {
         if (!options.keyLabel && !options.keyId) {
             throw new TypeError("keyLabel or keyId is required");

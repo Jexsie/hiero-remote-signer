@@ -76,10 +76,16 @@ export function createFakeVault(
         input: string | URL | Request,
         init?: RequestInit,
     ): Promise<Response> => {
-        const url = String(input);
+        const url = input instanceof Request ? input.url : input.toString();
         const method = init?.method ?? "GET";
         const headers = new Headers(init?.headers);
-        const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+        const body =
+            typeof init?.body === "string"
+                ? (JSON.parse(init.body) as {
+                      input?: unknown;
+                      key_version?: number;
+                  })
+                : undefined;
         requests.push({ method, url, body });
 
         if (headers.get("X-Vault-Token") !== VAULT_TOKEN) {
@@ -156,5 +162,5 @@ export function createFakeVault(
         return error(405, "unsupported operation");
     };
 
-    return { requests, fetch: fetchImpl as typeof fetch };
+    return { requests, fetch: fetchImpl };
 }

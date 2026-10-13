@@ -67,6 +67,9 @@ class GrpcError extends Error {
 const INVALID_ARGUMENT = 3;
 const NOT_FOUND = 5;
 
+/** How Cloud KMS clients send a CRC32C: a number, a string or a Long. */
+type Crc32cValue = number | string | { toString(): string } | null;
+
 interface SignRequest {
     name?: string | null;
     digest?: {
@@ -74,9 +77,9 @@ interface SignRequest {
         sha384?: Uint8Array | null;
         sha512?: Uint8Array | null;
     } | null;
-    digestCrc32c?: { value?: unknown } | null;
+    digestCrc32c?: { value?: Crc32cValue } | null;
     data?: Uint8Array | null;
-    dataCrc32c?: { value?: unknown } | null;
+    dataCrc32c?: { value?: Crc32cValue } | null;
 }
 
 /**
@@ -94,8 +97,8 @@ export function createFakeGcpKms(keys: FakeGcpKey[]) {
         if (!key) throw new GrpcError(NOT_FOUND, `${name} not found`);
         return key;
     };
-    const checksum = (value: unknown, bytes: Uint8Array) => {
-        if (value != null && Number(String(value)) !== crc32c(bytes)) {
+    const checksum = (value: Crc32cValue | undefined, bytes: Uint8Array) => {
+        if (value != null && Number(value.toString()) !== crc32c(bytes)) {
             throw new GrpcError(INVALID_ARGUMENT, "checksum mismatch");
         }
         return value != null;

@@ -2,10 +2,6 @@ import { randomBytes } from "node:crypto";
 import type { KeyVaultKey, SignResult } from "@azure/keyvault-keys";
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 
-import type {
-    AzureCryptographyClient,
-    AzureKeyClient,
-} from "../../src/azure/index.js";
 import { generateKeyMaterial, signSecp256k1Digest } from "./key-material.js";
 import type { KeyCurve, SignBehaviour } from "./key-material.js";
 
@@ -102,14 +98,14 @@ export function createFakeKeyVault(keys: FakeAzureKey[]) {
                 id: keyIdOf(key),
                 name: key.name,
                 keyType: key.kty,
-                keyOperations: key.keyOps as KeyVaultKey["keyOperations"],
+                keyOperations: key.keyOps,
                 key: {
                     kid: keyIdOf(key),
                     kty: key.kty,
                     crv: key.curve,
                     x: key.x,
                     y: key.y,
-                    keyOps: key.keyOps as KeyVaultKey["keyOperations"],
+                    keyOps: key.keyOps,
                 },
                 properties: {
                     id: keyIdOf(key),
@@ -167,8 +163,7 @@ export function createFakeKeyVault(keys: FakeAzureKey[]) {
 
     return {
         signCalls,
-        keyClient: keyClient as AzureKeyClient,
-        cryptographyClientFor: (keyId: string) =>
-            cryptographyClientFor(keyId) as AzureCryptographyClient,
+        keyClient: keyClient,
+        cryptographyClientFor: (keyId: string) => cryptographyClientFor(keyId),
     };
 }

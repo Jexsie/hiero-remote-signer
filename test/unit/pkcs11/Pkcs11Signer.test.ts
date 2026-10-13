@@ -295,7 +295,7 @@ describe("Pkcs11Signer.sign", () => {
                     }
                     fake.module.C_SignInit(...args);
                 },
-            } as unknown as typeof fake.pkcs11,
+            },
             tokenLabel: "hiero",
             pin: "1234",
             keyLabel: key.label,
@@ -375,7 +375,7 @@ describe("Pkcs11Signer token failures", () => {
             pkcs11: {
                 ...fake.pkcs11,
                 [method]: replacement,
-            } as typeof fake.pkcs11,
+            },
             tokenLabel: "hiero",
             pin: "1234",
             keyLabel: key.label,

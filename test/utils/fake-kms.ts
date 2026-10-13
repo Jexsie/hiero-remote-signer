@@ -4,6 +4,10 @@ import {
     KMSClient,
     SignCommand,
 } from "@aws-sdk/client-kms";
+import type {
+    GetPublicKeyCommandInput,
+    SignCommandInput,
+} from "@aws-sdk/client-kms";
 import { mockClient } from "aws-sdk-client-mock";
 
 import {
@@ -91,21 +95,23 @@ export function installFakeKms(keys: FakeKey[]) {
         return key;
     };
 
-    mock.on(GetPublicKeyCommand).callsFake((input) => {
-        const key = find(input.KeyId);
-        return {
-            KeyId: key.arn,
-            KeySpec: key.spec,
-            KeyUsage: key.keyUsage,
-            PublicKey: key.spki,
-            SigningAlgorithms:
-                key.keyUsage === "SIGN_VERIFY"
-                    ? ALGORITHMS[key.spec]
-                    : undefined,
-        };
-    });
+    mock.on(GetPublicKeyCommand).callsFake(
+        (input: GetPublicKeyCommandInput) => {
+            const key = find(input.KeyId);
+            return {
+                KeyId: key.arn,
+                KeySpec: key.spec,
+                KeyUsage: key.keyUsage,
+                PublicKey: key.spki,
+                SigningAlgorithms:
+                    key.keyUsage === "SIGN_VERIFY"
+                        ? ALGORITHMS[key.spec]
+                        : undefined,
+            };
+        },
+    );
 
-    mock.on(SignCommand).callsFake((input) => {
+    mock.on(SignCommand).callsFake((input: SignCommandInput) => {
         const key = find(input.KeyId);
         const message = input.Message as Uint8Array;
         if (!ALGORITHMS[key.spec].includes(input.SigningAlgorithm!)) {
