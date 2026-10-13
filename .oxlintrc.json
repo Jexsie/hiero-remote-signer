@@ -1,0 +1,69 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["eslint", "typescript", "oxc"],
+    "categories": {
+        "correctness": "error"
+    },
+    "env": {
+        "node": true,
+        "es2024": true
+    },
+    "ignorePatterns": ["dist/**", "coverage/**"],
+    "rules": {
+        // Deprecated SDK and library APIs are not allowed
+        "typescript/no-deprecated": "error",
+
+        // typescript-eslint's recommended type-checked rules
+        "typescript/await-thenable": "error",
+        "typescript/no-array-delete": "error",
+        "typescript/no-base-to-string": "error",
+        "typescript/no-duplicate-type-constituents": "error",
+        "typescript/no-floating-promises": "error",
+        "typescript/no-for-in-array": "error",
+        "typescript/no-implied-eval": "error",
+        "typescript/no-misused-promises": "error",
+        "typescript/no-redundant-type-constituents": "error",
+        "typescript/no-unnecessary-type-assertion": "error",
+        "typescript/no-unsafe-argument": "error",
+        "typescript/no-unsafe-assignment": "error",
+        "typescript/no-unsafe-call": "error",
+        "typescript/no-unsafe-enum-comparison": "error",
+        "typescript/no-unsafe-member-access": "error",
+        "typescript/no-unsafe-return": "error",
+        "typescript/no-unsafe-unary-minus": "error",
+        "typescript/only-throw-error": "error",
+        "typescript/prefer-promise-reject-errors": "error",
+        "typescript/require-await": "error",
+        "typescript/restrict-plus-operands": "error",
+        "typescript/restrict-template-expressions": "error",
+        "typescript/unbound-method": "error",
+
+        "typescript/no-explicit-any": "error",
+        "no-unused-vars": [
+            "error",
+            { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+        ],
+        "typescript/consistent-type-imports": [
+            "error",
+            { "prefer": "type-imports", "fixStyle": "separate-type-imports" }
+        ]
+    },
+    "overrides": [
+        {
+            // Backend fakes implement async client APIs without awaiting anything
+            "files": ["test/**/*.ts"],
+            "rules": { "typescript/require-await": "off" }
+        },
+        {
+            // Plain JavaScript build helpers carry no types to check
+            "files": ["**/*.js", "**/*.cjs"],
+            "rules": {
+                "typescript/no-unsafe-argument": "off",
+                "typescript/no-unsafe-assignment": "off",
+                "typescript/no-unsafe-call": "off",
+                "typescript/no-unsafe-member-access": "off",
+                "typescript/no-unsafe-return": "off"
+            }
+        }
+    ]
+}

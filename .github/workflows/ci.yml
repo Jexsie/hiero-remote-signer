@@ -47,7 +47,7 @@ jobs:
             - name: Prettier
               run: npm run format:check
 
-            - name: ESLint
+            - name: Oxlint
               run: npm run lint
 
             - name: Build package

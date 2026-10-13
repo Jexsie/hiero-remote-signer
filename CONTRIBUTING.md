@@ -41,15 +41,13 @@ Open an issue describing the problem you want solved and the backend it concerns
 - **Node.js 22.22 or later.** Babel 8, Vitest 5 and lint-staged require it, though the published package itself runs on Node.js 20.
 - **npm.** The repository uses npm workspaces: the root package plus [`example/`](example).
 
-TypeScript is installed twice. TypeScript 7 (`typescript-7`) compiles and type-checks; every script calls it explicitly. TypeScript 6.0 is the plain `typescript` package because `typescript-eslint` needs its JavaScript API, which TypeScript 7 doesn't provide. So `npx tsc` runs 6.0. Use the npm scripts instead.
-
 ### Building and testing
 
 ```sh
 npm install              # installs dependencies and builds dist/
 npm run build            # type-checks the tests, then builds ESM, CommonJS and declarations
 npm run test:unit        # unit tests, no network needed
-npm run lint             # ESLint with type-aware rules; `npm run lint:fix` fixes what it can
+npm run lint             # oxlint with type-aware rules; `npm run lint:fix` fixes what it can
 npm run format:check     # Prettier, as CI runs it; `npm run format` rewrites files
 ```
 
@@ -115,9 +113,9 @@ scripts/        declaration mirroring for the CommonJS build
 
 ### Code style
 
-- Prettier formats everything (four-space indents), and ESLint checks the code with the type-aware `typescript-eslint` rules (`eslint.config.js`).
-- A Husky pre-commit hook runs lint-staged, which applies `eslint --fix` and Prettier to the staged files. `npm install` sets up the hook. It does this by setting `core.hooksPath` in the repository's local git config.
-- Deprecated APIs are a lint error (`@typescript-eslint/no-deprecated`).
+- Prettier formats everything (four-space indents). [Oxlint](https://oxc.rs/docs/guide/usage/linter) checks the code with type-aware rules (`.oxlintrc.json`). Its type information comes from TypeScript 7 through `oxlint-tsgolint`, and each file uses its nearest `tsconfig.json`.
+- A Husky pre-commit hook runs lint-staged, which applies `oxlint --fix` and Prettier to the staged files. `npm install` sets up the hook. It does this by setting `core.hooksPath` in the repository's local git config.
+- Deprecated APIs are a lint error (`typescript/no-deprecated`).
 - Write comments only where the reason isn't obvious from the code.
 
 ### Commits and pull requests
