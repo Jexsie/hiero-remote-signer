@@ -88,7 +88,7 @@ A quick local setup:
 ```
 src/
   types/        HieroKeyType and the HieroRemoteSigner interface
-  signer/       RemoteSigner, the base class of every backend signer (setClientOperator)
+  signer/       RemoteSigner, the base class of every backend signer (signTransaction, setClientOperator)
   errors/       RemoteSignerError and RemoteSignerErrorCodes
   der/          DER and PEM decoding, public key parsing, signature conversion, low-S rule
   aws/ gcp/ azure/ vault/ pkcs11/    one directory per backend entry point
