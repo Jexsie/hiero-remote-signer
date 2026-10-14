@@ -3,16 +3,17 @@
 [![CI](https://github.com/Jexsie/hiero-remote-signer/actions/workflows/ci.yml/badge.svg)](https://github.com/Jexsie/hiero-remote-signer/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-Sign Hiero transactions with keys that never leave your KMS or HSM.
+Sign Hiero transactions with external keys on a KMS or HSM.
 
-Give it a key in AWS KMS, Google Cloud KMS, Azure Key Vault, HashiCorp Vault or a PKCS#11 hardware security module, and it returns a signer that the [Hiero JavaScript SDK](https://github.com/hiero-ledger/hiero-sdk-js) already accepts in `Client.setOperatorWith()` and `Transaction.signWith()`. The private key stays in the backend. Your process only sees the public key and the signatures, so you get the backend's access control, audit log and revocation without forking the SDK or adding a wallet layer.
+The package lets organizations sign Hiero transactions with keys held in AWS KMS, Google Cloud KMS, Azure Key Vault, HashiCorp Vault or a PKCS#11 HSM. Private keys never enter your application. Every signature passes the backend’s access controls and appears in its audit log. Combined with Hiero’s native threshold keys, the keys of one account can even sit in different backends, so no single provider or administrator can move funds alone.
+
+The signers plug into the existing hooks of the Hiero JavaScript SDK, with no fork or wallet layer. The package was inspired by the HSM and KMS signing tutorials in the Hedera developer docs.
 
 ## Install
 
-Requires Node.js 20 or later and `@hiero-ledger/sdk` 2.89 or later. The package is not on npm yet, so install it from GitHub, with the SDK and the client library of your backend:
-
+Requires Node.js 20 or later and `@hiero-ledger/sdk` 2.89 or later. 
 ```sh
-npm install github:Jexsie/hiero-remote-signer @hiero-ledger/sdk @aws-sdk/client-kms
+npm install hiero-remote-signer
 ```
 
 Each backend has its own entry point, and its client library is an optional peer dependency, so you only install the one you use:
