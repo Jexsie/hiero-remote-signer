@@ -3,16 +3,17 @@
 [![CI](https://github.com/Jexsie/hiero-remote-signer/actions/workflows/ci.yml/badge.svg)](https://github.com/Jexsie/hiero-remote-signer/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-Sign Hiero transactions with keys that never leave your KMS or HSM.
+Sign Hiero transactions with external keys on a KMS or HSM.
 
-Organisations that govern accounts, tokens or contracts together, such as a council, a treasury committee or a custodian and its client, can each keep their key in their own AWS KMS, Google Cloud KMS, Azure Key Vault, HashiCorp Vault or PKCS#11 hardware security module and still approve the same transaction. Each party gets a signer that adds its signature to a transaction, or acts as the paying operator, through the hooks the [Hiero JavaScript SDK](https://github.com/hiero-ledger/hiero-sdk-js) already has. The private keys stay in the backends, so every approval goes through that party's own access control, audit log and revocation, with no SDK fork or wallet layer.
+The package lets organizations sign Hiero transactions with keys held in AWS KMS, Google Cloud KMS, Azure Key Vault, HashiCorp Vault or a PKCS#11 HSM. Private keys never enter your application. Every signature passes the backend’s access controls and appears in its audit log. Combined with Hiero’s native threshold keys, the keys of one account can even sit in different backends, so no single provider or administrator can move funds alone.
+
+The signers plug into the existing hooks of the Hiero JavaScript SDK, with no fork or wallet layer. The package was inspired by the HSM and KMS signing tutorials in the Hedera developer docs.
 
 ## Install
 
-Requires Node.js 20 or later and `@hiero-ledger/sdk` 2.89 or later. The package is not on npm yet, so install it from GitHub, with the SDK and the client library of your backend:
-
+Requires Node.js 20 or later and `@hiero-ledger/sdk` 2.89 or later. 
 ```sh
-npm install github:Jexsie/hiero-remote-signer @hiero-ledger/sdk @aws-sdk/client-kms
+npm install hiero-remote-signer
 ```
 
 Each backend has its own entry point, and its client library is an optional peer dependency, so you only install the one you use:
