@@ -130,14 +130,16 @@ try {
 
     // -----------------------------------------------------------------------
     // Step 5: the funding account pays the fee and signs locally; the
-    // remote key co-signs with signWith because it owns the debited account.
+    // remote key co-signs with signTransaction because it owns the debited
+    // account.
     // -----------------------------------------------------------------------
-    const coSigned = await new TransferTransaction()
-        .addHbarTransfer(accountId, transferAmount.negated())
-        .addHbarTransfer(fundingAccountId, transferAmount)
-        .setTransactionMemo("co-signed by AWS KMS")
-        .freezeWith(fundingClient)
-        .signWith(signer.publicKey, signer.sign);
+    const coSigned = await signer.signTransaction(
+        new TransferTransaction()
+            .addHbarTransfer(accountId, transferAmount.negated())
+            .addHbarTransfer(fundingAccountId, transferAmount)
+            .setTransactionMemo("co-signed by AWS KMS")
+            .freezeWith(fundingClient),
+    );
     const coSignResponse = await coSigned.execute(fundingClient);
     const coSignReceipt = await coSignResponse.getReceipt(fundingClient);
 

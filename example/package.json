@@ -14,6 +14,7 @@
         "azure": "tsx src/azure.ts",
         "vault": "tsx src/vault.ts",
         "pkcs11": "tsx src/pkcs11.ts",
+        "governance": "tsx src/governance.ts",
         "typecheck": "tsc --noEmit -p tsconfig.json"
     },
     "dependencies": {
