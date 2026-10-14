@@ -10,8 +10,8 @@ export * from "./types/index.js";
 // Errors
 export * from "./errors/index.js";
 
-// Client
-export * from "./client/index.js";
+// Signer base class
+export * from "./signer/index.js";
 
 // DER encoding
 export * from "./der/index.js";

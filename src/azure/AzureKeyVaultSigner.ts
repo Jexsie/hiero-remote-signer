@@ -12,7 +12,8 @@ import {
     normalizeCompactSignature,
 } from "../der/index.js";
 import { RemoteSignerError, RemoteSignerErrorCodes } from "../errors/index.js";
-import type { HieroKeyType, HieroRemoteSigner } from "../types/index.js";
+import { RemoteSigner } from "../signer/index.js";
+import type { HieroKeyType } from "../types/index.js";
 import type {
     AzureCryptographyClient,
     AzureKeyVaultSignerOptions,
@@ -40,7 +41,7 @@ function requireCredential(
  * Only `EC` and `EC-HSM` keys on curve `P-256K` (secp256k1) are supported,
  * signed with `ES256K`. Key Vault has no Ed25519 keys.
  */
-export class AzureKeyVaultSigner implements HieroRemoteSigner {
+export class AzureKeyVaultSigner extends RemoteSigner {
     readonly keyType: HieroKeyType = "ECDSA_SECP256K1";
     readonly publicKey: PublicKey;
     /**
@@ -60,6 +61,7 @@ export class AzureKeyVaultSigner implements HieroRemoteSigner {
         publicKey: PublicKey;
         verify: boolean;
     }) {
+        super();
         this.#client = params.client;
         this.keyId = params.keyId;
         this.publicKey = params.publicKey;

@@ -30,10 +30,7 @@ import {
     Status,
     TransferTransaction,
 } from "@hiero-ledger/sdk";
-import {
-    setClientOperator,
-    VaultTransitSigner,
-} from "hiero-remote-signer/vault";
+import { VaultTransitSigner } from "hiero-remote-signer/vault";
 
 // ---------------------------------------------------------------------------
 // Step 1: read the settings from example/.env
@@ -114,7 +111,7 @@ try {
     // remote signer as the client's operator, every signature on every
     // transaction this client sends comes from Vault.
     // -----------------------------------------------------------------------
-    remoteClient = setClientOperator(Client.forTestnet(), accountId, signer);
+    remoteClient = signer.setClientOperator(Client.forTestnet(), accountId);
 
     const transferResponse = await new TransferTransaction()
         .addHbarTransfer(accountId, transferAmount.negated())

@@ -32,11 +32,7 @@ import {
     Status,
     TransferTransaction,
 } from "@hiero-ledger/sdk";
-import {
-    Pkcs11Constants as C,
-    Pkcs11Signer,
-    setClientOperator,
-} from "hiero-remote-signer/pkcs11";
+import { Pkcs11Constants as C, Pkcs11Signer } from "hiero-remote-signer/pkcs11";
 
 // ---------------------------------------------------------------------------
 // Step 1: read the settings from example/.env
@@ -189,7 +185,7 @@ try {
     // remote signer as the client's operator, every signature on every
     // transaction this client sends comes from the token.
     // -----------------------------------------------------------------------
-    remoteClient = setClientOperator(Client.forTestnet(), accountId, signer);
+    remoteClient = signer.setClientOperator(Client.forTestnet(), accountId);
 
     const transferResponse = await new TransferTransaction()
         .addHbarTransfer(accountId, transferAmount.negated())

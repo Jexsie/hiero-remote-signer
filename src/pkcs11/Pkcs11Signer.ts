@@ -10,7 +10,8 @@ import {
 import { OID } from "../der/spki.js";
 import { DerTag, decodeOid, readTlv } from "../der/tlv.js";
 import { RemoteSignerError, RemoteSignerErrorCodes } from "../errors/index.js";
-import type { HieroKeyType, HieroRemoteSigner } from "../types/index.js";
+import { RemoteSigner } from "../signer/index.js";
+import type { HieroKeyType } from "../types/index.js";
 import type {
     Pkcs11Module,
     Pkcs11SignerOptions,
@@ -117,7 +118,7 @@ function decodeEcPoint(value: Uint8Array, rawLengths: number[]): Uint8Array {
  * over the raw bytes, PKCS#11 v3.0). A session runs one operation at a time,
  * so concurrent `sign` calls are queued.
  */
-export class Pkcs11Signer implements HieroRemoteSigner {
+export class Pkcs11Signer extends RemoteSigner {
     readonly keyType: HieroKeyType;
     readonly publicKey: PublicKey;
     /**
@@ -143,6 +144,7 @@ export class Pkcs11Signer implements HieroRemoteSigner {
         verify: boolean;
         release: () => void;
     }) {
+        super();
         this.#module = params.module;
         this.#session = params.session;
         this.#privateKey = params.privateKey;

@@ -31,7 +31,7 @@ import {
     Status,
     TransferTransaction,
 } from "@hiero-ledger/sdk";
-import { GcpKmsSigner, setClientOperator } from "hiero-remote-signer/gcp";
+import { GcpKmsSigner } from "hiero-remote-signer/gcp";
 
 // ---------------------------------------------------------------------------
 // Step 1: read the settings from example/.env
@@ -112,7 +112,7 @@ try {
     // remote signer as the client's operator, every signature on every
     // transaction this client sends comes from Cloud KMS.
     // -----------------------------------------------------------------------
-    remoteClient = setClientOperator(Client.forTestnet(), accountId, signer);
+    remoteClient = signer.setClientOperator(Client.forTestnet(), accountId);
 
     const transferResponse = await new TransferTransaction()
         .addHbarTransfer(accountId, transferAmount.negated())

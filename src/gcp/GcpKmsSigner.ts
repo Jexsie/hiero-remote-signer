@@ -5,7 +5,8 @@ import { keccak_256 } from "@noble/hashes/sha3.js";
 
 import { derSignatureToCompact, parseSpki, pemToDer } from "../der/index.js";
 import { RemoteSignerError, RemoteSignerErrorCodes } from "../errors/index.js";
-import type { HieroKeyType, HieroRemoteSigner } from "../types/index.js";
+import { RemoteSigner } from "../signer/index.js";
+import type { HieroKeyType } from "../types/index.js";
 import { crc32c } from "./crc32c.js";
 import type {
     GcpKmsClient,
@@ -48,7 +49,7 @@ function toBytes(value: Uint8Array | string): Uint8Array {
  * software protection level only). Every request and response is checked
  * with CRC32C, as Cloud KMS recommends.
  */
-export class GcpKmsSigner implements HieroRemoteSigner {
+export class GcpKmsSigner extends RemoteSigner {
     readonly keyType: HieroKeyType;
     readonly publicKey: PublicKey;
     /**
@@ -69,6 +70,7 @@ export class GcpKmsSigner implements HieroRemoteSigner {
         publicKey: PublicKey;
         verify: boolean;
     }) {
+        super();
         this.#client = params.client;
         this.keyVersionName = params.keyVersionName;
         this.keyType = params.keyType;

@@ -9,7 +9,6 @@ import {
     TransferTransaction,
 } from "@hiero-ledger/sdk";
 
-import { setClientOperator } from "../../../src/client/index.js";
 import { RemoteSignerErrorCodes } from "../../../src/errors/index.js";
 import { VaultTransitSigner } from "../../../src/vault/index.js";
 import type { VaultTransitSignerOptions } from "../../../src/vault/index.js";
@@ -336,7 +335,7 @@ describe("Hiero SDK integration (Vault transit)", () => {
     it("works as the client operator", async () => {
         const signer = await setup(makeTransitKey()).create();
         const network = hieroClient();
-        setClientOperator(network, "0.0.1234", signer);
+        signer.setClientOperator(network, "0.0.1234");
 
         const tx = transfer("0.0.1234").freezeWith(network);
         await tx.signWithOperator(network);

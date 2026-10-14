@@ -18,7 +18,6 @@ import {
 import { keccak_256 } from "@noble/hashes/sha3.js";
 
 import { AwsKmsSigner } from "../../../src/aws/index.js";
-import { setClientOperator } from "../../../src/client/index.js";
 import { RemoteSignerErrorCodes } from "../../../src/errors/index.js";
 import { expectCodeAsync } from "../../utils/assertions.js";
 import { installFakeKms, makeKey } from "../../utils/fake-kms.js";
@@ -241,11 +240,7 @@ describe.each(["ECC_SECG_P256K1", "ECC_NIST_EDWARDS25519"] as const)(
                 client: client(),
             });
             const network = hieroClient();
-            setClientOperator(
-                network,
-                AccountId.fromString("0.0.1234"),
-                signer,
-            );
+            signer.setClientOperator(network, AccountId.fromString("0.0.1234"));
 
             expect(network.operatorPublicKey?.toStringRaw()).toBe(
                 signer.publicKey.toStringRaw(),

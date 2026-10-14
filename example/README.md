@@ -22,7 +22,7 @@ Every script runs the same eight steps:
 1. **Settings:** reads `example/.env`.
 2. **Connect:** connects to the backend and loads the public key. The PKCS#11 script first generates the key pair on the token if it doesn't exist yet.
 3. **Create the account:** creates a testnet account whose only key is the remote key, with 10 HBAR. Your funding account pays.
-4. **Transfer as operator:** the new account sends 1 HBAR to your funding account. The new account pays the fee, and every signature comes from the backend (`setClientOperator`).
+4. **Transfer as operator:** the new account sends 1 HBAR to your funding account. The new account pays the fee, and every signature comes from the backend (`signer.setClientOperator`).
 5. **Co-signed transfer:** 1 HBAR more, with the fee paid by your funding account. The remote key approves the debit with `signWith`, which is how a treasury or custody key approves a payout prepared by another service.
 6. **Balance:** reads the new account's balance from the mirror node. The mirror node trails the network by a few seconds, so the script waits until both transfers show up.
 7. **Clean up:** deletes the new account, which is also signed by the remote key, and returns the remaining HBAR to your funding account. A run costs only transaction fees.
@@ -354,12 +354,11 @@ Stripped of logging, every script uses the package like this, shown here for AWS
 
 ```ts
 import { AwsKmsSigner } from "hiero-remote-signer/aws";
-import { setClientOperator } from "hiero-remote-signer";
 
 const signer = await AwsKmsSigner.create({ keyId: "alias/hiero-operator" });
 
 // Every transaction this client sends is paid for and signed by the KMS key.
-const client = setClientOperator(Client.forTestnet(), accountId, signer);
+const client = signer.setClientOperator(Client.forTestnet(), accountId);
 
 // Or add the KMS signature to a transaction someone else pays for.
 await transaction.freezeWith(otherClient).signWith(signer.publicKey, signer.sign);

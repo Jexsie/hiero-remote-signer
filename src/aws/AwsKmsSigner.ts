@@ -9,7 +9,8 @@ import { keccak_256 } from "@noble/hashes/sha3.js";
 
 import { derSignatureToCompact, parseSpki } from "../der/index.js";
 import { RemoteSignerError, RemoteSignerErrorCodes } from "../errors/index.js";
-import type { HieroKeyType, HieroRemoteSigner } from "../types/index.js";
+import { RemoteSigner } from "../signer/index.js";
+import type { HieroKeyType } from "../types/index.js";
 import type { AwsKmsSignerOptions } from "./AwsKmsSignerOptions.js";
 
 /**
@@ -40,7 +41,7 @@ const KEY_SPECS: Record<
  * Supported key specs are `ECC_SECG_P256K1` (Hiero ECDSA keys) and
  * `ECC_NIST_EDWARDS25519` (Hiero ED25519 keys).
  */
-export class AwsKmsSigner implements HieroRemoteSigner {
+export class AwsKmsSigner extends RemoteSigner {
     readonly keyType: HieroKeyType;
     readonly publicKey: PublicKey;
     /**
@@ -65,6 +66,7 @@ export class AwsKmsSigner implements HieroRemoteSigner {
         verify: boolean;
         grantTokens: string[] | undefined;
     }) {
+        super();
         this.#client = params.client;
         this.keyArn = params.keyArn;
         this.keyType = params.keyType;

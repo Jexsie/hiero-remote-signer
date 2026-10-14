@@ -31,12 +31,12 @@ Create a signer for your key, then make it the operator of a client. Every trans
 
 ```ts
 import { Client, Hbar, TransferTransaction } from "@hiero-ledger/sdk";
-import { AwsKmsSigner, setClientOperator } from "hiero-remote-signer/aws";
+import { AwsKmsSigner } from "hiero-remote-signer/aws";
 
 const signer = await AwsKmsSigner.create({ keyId: "alias/hiero-treasury" });
 
 // 0.0.1234 is an account whose key is the KMS public key.
-const client = setClientOperator(Client.forTestnet(), "0.0.1234", signer);
+const client = signer.setClientOperator(Client.forTestnet(), "0.0.1234");
 
 const response = await new TransferTransaction()
     .addHbarTransfer("0.0.1234", new Hbar(-1))
@@ -113,7 +113,7 @@ const hsm = await Pkcs11Signer.create({
 await hsm.close();
 ```
 
-Every entry point also exports `setClientOperator`, `RemoteSignerError` and `RemoteSignerErrorCodes`, so a single import covers a backend. They are the same shared objects whichever entry point you import them from, so `instanceof` checks work across entry points.
+Every signer extends `RemoteSigner`, so `setClientOperator` works the same on all of them.
 
 Each `create()` also accepts an existing backend client to share connections and credentials with the rest of your application. See the options types in [`src/`](src) for every setting.
 
@@ -122,11 +122,8 @@ Each `create()` also accepts an existing backend client to share connections and
 Every failure is a `RemoteSignerError` with a `code`. Backend client errors are attached as `cause`:
 
 ```ts
-import {
-    AwsKmsSigner,
-    RemoteSignerError,
-    RemoteSignerErrorCodes,
-} from "hiero-remote-signer/aws";
+import { RemoteSignerError, RemoteSignerErrorCodes } from "hiero-remote-signer";
+import { AwsKmsSigner } from "hiero-remote-signer/aws";
 
 try {
     await AwsKmsSigner.create({ keyId: "alias/hiero-treasury" });

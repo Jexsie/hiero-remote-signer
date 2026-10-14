@@ -31,10 +31,7 @@ import {
     Status,
     TransferTransaction,
 } from "@hiero-ledger/sdk";
-import {
-    AzureKeyVaultSigner,
-    setClientOperator,
-} from "hiero-remote-signer/azure";
+import { AzureKeyVaultSigner } from "hiero-remote-signer/azure";
 
 // ---------------------------------------------------------------------------
 // Step 1: read the settings from example/.env
@@ -113,7 +110,7 @@ try {
     // remote signer as the client's operator, every signature on every
     // transaction this client sends comes from Key Vault.
     // -----------------------------------------------------------------------
-    remoteClient = setClientOperator(Client.forTestnet(), accountId, signer);
+    remoteClient = signer.setClientOperator(Client.forTestnet(), accountId);
 
     const transferResponse = await new TransferTransaction()
         .addHbarTransfer(accountId, transferAmount.negated())
