@@ -6,8 +6,7 @@ import {
 } from "@hiero-ledger/sdk";
 import type { Status } from "@hiero-ledger/sdk";
 
-import { setClientOperator } from "../../src/client/index.js";
-import type { HieroRemoteSigner } from "../../src/types/index.js";
+import type { RemoteSigner } from "../../src/signer/index.js";
 import { operatorKeyFromEnv } from "./env.js";
 
 /**
@@ -33,7 +32,7 @@ export const hieroNetworkConfigured = Boolean(
  * transfer's receipt status.
  */
 export async function createAccountAndSpend(
-    signer: HieroRemoteSigner,
+    signer: RemoteSigner,
 ): Promise<Status> {
     const network = JSON.parse(env.HIERO_NETWORK!) as Record<string, string>;
     const funding = Client.forNetwork(network).setOperator(
@@ -48,10 +47,9 @@ export async function createAccountAndSpend(
             .execute(funding);
         const accountId = (await created.getReceipt(funding)).accountId!;
 
-        remote = setClientOperator(
+        remote = signer.setClientOperator(
             Client.forNetwork(network),
             accountId,
-            signer,
         );
         const transfer = await new TransferTransaction()
             .addHbarTransfer(accountId, new Hbar(-1))

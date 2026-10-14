@@ -88,8 +88,8 @@ A quick local setup:
 ```
 src/
   types/        HieroKeyType and the HieroRemoteSigner interface
+  signer/       RemoteSigner, the base class of every backend signer (signTransaction, setClientOperator)
   errors/       RemoteSignerError and RemoteSignerErrorCodes
-  client/       setClientOperator
   der/          DER and PEM decoding, public key parsing, signature conversion, low-S rule
   aws/ gcp/ azure/ vault/ pkcs11/    one directory per backend entry point
 test/
@@ -100,16 +100,15 @@ example/        testnet walkthrough, one self-contained script per backend
 scripts/        declaration mirroring for the CommonJS build
 ```
 
-`types/`, `errors/`, `client/` and `der/` contain no backend code.
+`types/`, `signer/`, `errors/` and `der/` contain no backend code.
 
 ### Adding a backend
 
-1. Add `src/<backend>/` with a `<Backend>Signer` class that implements `HieroRemoteSigner`, an options interface, and an async `create()` that reads and validates the public key once.
+1. Add `src/<backend>/` with a `<Backend>Signer` class that extends `RemoteSigner`, an options interface, and an async `create()` that reads and validates the public key once.
 2. Reuse the `der/` helpers to parse public keys and signatures, and throw `RemoteSignerError` with the closest existing code. Expose `sign` as a readonly bound function, not a method, so callers can pass `signer.sign` to the SDK.
-3. In `src/<backend>/index.ts`, re-export the shared helpers (`setClientOperator`, the errors and the types) as the other backends do, so one import covers the backend.
-4. Add the entry point to `exports` in `package.json`, and the client library as an optional peer dependency and a dev dependency.
-5. Add a fake in `test/utils/` that enforces the backend's real request contract, plus unit tests in `test/unit/<backend>/`.
-6. Add an integration spec, a section in `test/.env.example`, a row in the README table, and a script in `example/`.
+3. Add the entry point to `exports` in `package.json`, and the client library as an optional peer dependency and a dev dependency.
+4. Add a fake in `test/utils/` that enforces the backend's real request contract, plus unit tests in `test/unit/<backend>/`.
+5. Add an integration spec, a case in `test/unit/signer/RemoteSigner.test.ts`, a section in `test/.env.example`, a row in the README table, and a script in `example/`.
 
 ### Code style
 

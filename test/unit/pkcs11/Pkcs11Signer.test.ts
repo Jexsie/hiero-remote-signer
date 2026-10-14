@@ -10,7 +10,6 @@ import {
 } from "@hiero-ledger/sdk";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 
-import { setClientOperator } from "../../../src/client/index.js";
 import { RemoteSignerErrorCodes } from "../../../src/errors/index.js";
 import {
     Pkcs11Constants as C,
@@ -352,7 +351,7 @@ describe.each(["secp256k1", "ed25519"] as const)(
         it("works as the client operator", async () => {
             const signer = await setup([makePkcs11Key(curve)]).create();
             const network = hieroClient();
-            setClientOperator(network, "0.0.1234", signer);
+            signer.setClientOperator(network, "0.0.1234");
 
             const tx = transfer("0.0.1234").freezeWith(network);
             await tx.signWithOperator(network);

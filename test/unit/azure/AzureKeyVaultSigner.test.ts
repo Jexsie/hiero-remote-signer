@@ -15,7 +15,6 @@ import type {
     AzureCryptographyClient,
     AzureKeyClient,
 } from "../../../src/azure/index.js";
-import { setClientOperator } from "../../../src/client/index.js";
 import { RemoteSignerErrorCodes } from "../../../src/errors/index.js";
 import { expectCodeAsync } from "../../utils/assertions.js";
 import {
@@ -272,7 +271,7 @@ describe("Hiero SDK integration (Azure Key Vault)", () => {
         const key = makeAzureKey();
         const signer = await setup(key).create();
         const network = hieroClient();
-        setClientOperator(network, "0.0.1234", signer);
+        signer.setClientOperator(network, "0.0.1234");
 
         const tx = transfer("0.0.1234").freezeWith(network);
         await tx.signWithOperator(network);

@@ -28,16 +28,63 @@ Each backend has its own entry point, and its client library is an optional peer
 
 ## Usage
 
-Create a signer for your key, then make it the operator of a client. Every transaction that client sends is paid for and signed by the backend:
+### Approve a transaction as one of several parties
+
+A treasury whose key needs 2 of 3 parties, each holding its key in a different backend:
+
+```ts
+import { Hbar, Transaction, TransferTransaction } from "@hiero-ledger/sdk";
+import { AwsKmsSigner } from "hiero-remote-signer/aws";
+import { VaultTransitSigner } from "hiero-remote-signer/vault";
+
+// The treasury was created with the key
+// KeyList.of(financeKey, operationsKey, complianceKey).setThreshold(2).
+
+// A coordinator freezes the payout and sends the bytes to the parties.
+const proposal = new TransferTransaction()
+    .addHbarTransfer(treasuryId, new Hbar(-100))
+    .addHbarTransfer(recipientId, new Hbar(100))
+    .freezeWith(coordinatorClient)
+    .toBytes();
+
+// Finance, in its own environment, approves with its AWS KMS key.
+const finance = await AwsKmsSigner.create({ keyId: "alias/finance-approver" });
+const approvedOnce = await finance.signTransaction(
+    Transaction.fromBytes(proposal),
+);
+
+// Operations, in its own environment, approves with its Vault key.
+const operations = await VaultTransitSigner.create({
+    address: "https://vault.example.com:8200",
+    token: process.env.VAULT_TOKEN!,
+    keyName: "operations-approver",
+});
+const approvedTwice = await operations.signTransaction(
+    Transaction.fromBytes(approvedOnce.toBytes()),
+);
+
+// The coordinator submits. Two of three signatures meet the threshold.
+const response = await approvedTwice.execute(coordinatorClient);
+const receipt = await response.getReceipt(coordinatorClient);
+console.log(receipt.status.toString()); // SUCCESS
+```
+
+Only the transaction bytes travel between parties. Nobody holds another party's key or credentials, and with fewer than two signatures the network rejects the payout with `INVALID_SIGNATURE`.
+
+`signTransaction(tx)` works for any signature a transaction needs, such as the owner of a debited account, an admin, supply or freeze key, or one key of a threshold list. It works whoever pays for the transaction.
+
+### Pay for and sign transactions as the operator
+
+When the remote key belongs to the paying account, make it the client's operator. Every transaction that client sends is then paid for and signed by the backend:
 
 ```ts
 import { Client, Hbar, TransferTransaction } from "@hiero-ledger/sdk";
-import { AwsKmsSigner, setClientOperator } from "hiero-remote-signer/aws";
+import { AwsKmsSigner } from "hiero-remote-signer/aws";
 
 const signer = await AwsKmsSigner.create({ keyId: "alias/hiero-treasury" });
 
 // 0.0.1234 is an account whose key is the KMS public key.
-const client = setClientOperator(Client.forTestnet(), "0.0.1234", signer);
+const client = signer.setClientOperator(Client.forTestnet(), "0.0.1234");
 
 const response = await new TransferTransaction()
     .addHbarTransfer("0.0.1234", new Hbar(-1))
@@ -48,9 +95,9 @@ console.log((await response.getReceipt(client)).status.toString()); // SUCCESS
 client.close();
 ```
 
-### Create an account owned by the remote key
+### Create an account owned by a remote key
 
-An existing account pays, and the new account's key is the backend's public key:
+An existing account pays. The new account's key is the backend's public key, or a `KeyList` of several parties' keys as above:
 
 ```ts
 import { AccountCreateTransaction, Hbar } from "@hiero-ledger/sdk";
@@ -63,20 +110,6 @@ const receipt = await (
 ).getReceipt(fundingClient);
 
 console.log(receipt.accountId?.toString()); // 0.0.7654321
-```
-
-### Add the remote key as one signature among several
-
-When someone else pays for a transaction, the remote key can approve it, for example as a treasury key:
-
-```ts
-const transaction = await new TransferTransaction()
-    .addHbarTransfer(treasuryId, new Hbar(-100))
-    .addHbarTransfer(recipientId, new Hbar(100))
-    .freezeWith(payerClient)
-    .signWith(signer.publicKey, signer.sign);
-
-await transaction.execute(payerClient);
 ```
 
 ### Other backends
@@ -114,7 +147,7 @@ const hsm = await Pkcs11Signer.create({
 await hsm.close();
 ```
 
-Every entry point also exports `setClientOperator`, `RemoteSignerError` and `RemoteSignerErrorCodes`, so a single import covers a backend. They are the same shared objects whichever entry point you import them from, so `instanceof` checks work across entry points.
+Every signer extends `RemoteSigner`, so `signTransaction` and `setClientOperator` work the same on all of them.
 
 Each `create()` also accepts an existing backend client to share connections and credentials with the rest of your application. See the options types in [`src/`](src) for every setting.
 
@@ -123,11 +156,8 @@ Each `create()` also accepts an existing backend client to share connections and
 Every failure is a `RemoteSignerError` with a `code`. Backend client errors are attached as `cause`:
 
 ```ts
-import {
-    AwsKmsSigner,
-    RemoteSignerError,
-    RemoteSignerErrorCodes,
-} from "hiero-remote-signer/aws";
+import { RemoteSignerError, RemoteSignerErrorCodes } from "hiero-remote-signer";
+import { AwsKmsSigner } from "hiero-remote-signer/aws";
 
 try {
     await AwsKmsSigner.create({ keyId: "alias/hiero-treasury" });
@@ -155,12 +185,17 @@ try {
 
 ### Example: testnet walkthrough
 
-[`example/`](example) has one self-contained script per backend. Each script creates a Hedera testnet account owned by your backend key, spends from it as operator and as co-signer, reads the balance from the mirror node, then deletes the account. Its README covers setting up a key on each backend, from creating the cloud account to the `.env` lines.
+[`example/`](example) has self-contained scripts that run against Hedera testnet:
+
+- **`npm run governance`:** Finance on AWS KMS, Operations on Vault and Compliance on a PKCS#11 token jointly control a 2-of-3 treasury. One approval is rejected, two are accepted, and a different pair deletes the treasury.
+- **`npm run aws`, `gcp`, `azure`, `vault` or `pkcs11`:** creates an account owned by that backend's key, spends from it as operator and as co-signer, reads the balance from the mirror node, then deletes the account.
+
+Its README covers setting up a key on each backend, from creating the cloud account to the `.env` lines.
 
 ```sh
 cd example
-cp .env.example .env   # add your testnet account and backend key
-npm run vault          # or aws, gcp, azure, pkcs11
+cp .env.example .env   # add your testnet account and backend keys
+npm run governance     # or aws, gcp, azure, vault, pkcs11
 ```
 
 ## What It Does
@@ -171,11 +206,23 @@ npm run vault          # or aws, gcp, azure, pkcs11
 - **Pins the key.** An AWS alias, or an unversioned Azure or Vault key, is resolved once at startup and pinned. Rotating the key can't change the signer under a running process.
 - **Leaves the SDK unchanged.** `sign` has the SDK's callback type, so multi-signature transactions, offline signing and `Transaction.fromBytes()` work as they do with local keys.
 
+## Who can sign
+
+A signer can't give anyone powers they didn't have. The network decides whether a transaction is authorised: it executes only if the signatures satisfy the keys on the accounts, tokens or contracts involved, such as the owner of a debited account, a token's supply key or every key a threshold list requires. A signature from a key that isn't part of those keys counts for nothing, so calling `signTransaction()` or `Transaction.signWith()` with an unrelated key achieves nothing.
+
+The power sits with whoever can use a key that does count, which here means whoever can call the backend's sign operation for it. That is decided where the key lives:
+
+- **Backend access control.** Signing needs `kms:Sign` in AWS, `useToSign` in Google Cloud, the Key Vault `sign` permission, a Vault policy on `transit/sign/<key>`, or the token PIN. Grant it only to the services and people that should approve, one key per party.
+- **Audit and revocation.** Every signature is a backend request recorded with the caller's identity (CloudTrail, Cloud Audit Logs, Azure Monitor, Vault audit devices). Removing the permission stops that party immediately, without changing any Hiero key.
+- **Thresholds instead of single keys.** Give important accounts and tokens a threshold `KeyList`, so no single party, credential or compromised host can act alone. The governance example shows this.
+
+Keep in mind that a backend signs any bytes it is asked to sign. It doesn't understand Hiero transactions, so a caller with sign rights can get any transaction signed, not only the one a party meant to approve. Each party should decode and check a proposal, for example by reading it back with `Transaction.fromBytes()`, before calling `signTransaction()`.
+
 ## Limitations
 
 - **One backend request per node.** The SDK signs a separate body for each node a transaction may be sent to. Use `setNodeAccountIds()` to limit cost, latency and rate-limit use.
 - **AWS KMS Ed25519 bodies are capped at 4096 bytes.** `FileAppendTransaction` with its default chunk size exceeds this, so use smaller chunks.
-- **No transaction policy checks.** The signer signs whatever the SDK gives it. Spending limits or allow-lists belong in a separate layer that wraps the signer.
+- **No transaction policy checks.** The signer signs whatever the SDK gives it (see [Who can sign](#who-can-sign)). Spending limits or allow-lists belong in a separate layer that wraps the signer.
 - **No key management.** Creating keys, rotating them and updating Hiero account keys are left to each backend's own tooling and approval process.
 
 ## Contributing

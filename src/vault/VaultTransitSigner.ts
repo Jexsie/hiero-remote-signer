@@ -2,7 +2,8 @@ import { PublicKey } from "@hiero-ledger/sdk";
 
 import { parseSpki, pemToDer } from "../der/index.js";
 import { RemoteSignerError, RemoteSignerErrorCodes } from "../errors/index.js";
-import type { HieroKeyType, HieroRemoteSigner } from "../types/index.js";
+import { RemoteSigner } from "../signer/index.js";
+import type { HieroKeyType } from "../types/index.js";
 import type {
     VaultToken,
     VaultTransitSignerOptions,
@@ -90,7 +91,7 @@ class TransitApi {
  * Only `ed25519` keys are supported: transit has no secp256k1 keys. Derived
  * keys are rejected, because they need a per-request context.
  */
-export class VaultTransitSigner implements HieroRemoteSigner {
+export class VaultTransitSigner extends RemoteSigner {
     readonly keyType: HieroKeyType = "ED25519";
     readonly publicKey: PublicKey;
     /**
@@ -113,6 +114,7 @@ export class VaultTransitSigner implements HieroRemoteSigner {
         publicKey: PublicKey;
         verify: boolean;
     }) {
+        super();
         this.#api = params.api;
         this.keyName = params.keyName;
         this.keyVersion = params.keyVersion;

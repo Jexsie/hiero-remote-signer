@@ -7,28 +7,42 @@ It uses two accounts:
 - **Funding account:** the testnet account you already have, with its private key held locally. It pays to create the second account.
 - **Remote-key account:** a new account created by the example. It can only be controlled through the remote signer.
 
-There is one self-contained script per backend in `src/`. Each one reads top to bottom, with every step written out in that file:
+Every script in `src/` is self-contained and reads top to bottom, with every step written out in that file. There is one script per backend, plus a governance script that combines three backends:
 
-| Command          | File            | Backend                              |
-| ---------------- | --------------- | ------------------------------------ |
+| Command              | File                | Backend                                                |
+| -------------------- | ------------------- | ------------------------------------------------------ |
+| `npm run governance` | `src/governance.ts` | AWS KMS, Vault and PKCS#11 together, as three parties  |
 | `npm run aws`    | `src/aws.ts`    | AWS KMS                              |
 | `npm run gcp`    | `src/gcp.ts`    | Google Cloud KMS                     |
 | `npm run azure`  | `src/azure.ts`  | Azure Key Vault                      |
 | `npm run vault`  | `src/vault.ts`  | HashiCorp Vault or OpenBao transit   |
 | `npm run pkcs11` | `src/pkcs11.ts` | PKCS#11 token (SoftHSM or a real HSM) |
 
-Every script runs the same eight steps:
+The five backend scripts run the same eight steps:
 
 1. **Settings:** reads `example/.env`.
 2. **Connect:** connects to the backend and loads the public key. The PKCS#11 script first generates the key pair on the token if it doesn't exist yet.
 3. **Create the account:** creates a testnet account whose only key is the remote key, with 10 HBAR. Your funding account pays.
-4. **Transfer as operator:** the new account sends 1 HBAR to your funding account. The new account pays the fee, and every signature comes from the backend (`setClientOperator`).
-5. **Co-signed transfer:** 1 HBAR more, with the fee paid by your funding account. The remote key approves the debit with `signWith`, which is how a treasury or custody key approves a payout prepared by another service.
+4. **Transfer as operator:** the new account sends 1 HBAR to your funding account. The new account pays the fee, and every signature comes from the backend (`signer.setClientOperator`).
+5. **Co-signed transfer:** 1 HBAR more, with the fee paid by your funding account. The remote key approves the debit with `signer.signTransaction`, which is how a treasury or custody key approves a payout prepared by another service.
 6. **Balance:** reads the new account's balance from the mirror node. The mirror node trails the network by a few seconds, so the script waits until both transfers show up.
 7. **Clean up:** deletes the new account, which is also signed by the remote key, and returns the remaining HBAR to your funding account. A run costs only transaction fees.
 8. **Results:** prints a table with each transaction's status and ID, plus a HashScan link.
 
-Pick **one** backend in [step 2](#2-set-up-one-backend). The rest of the steps are the same for every backend.
+For a backend script, set up **one** backend in [step 2](#2-set-up-one-backend). For the governance script, set up AWS KMS, Vault and PKCS#11 (options A, D and E). The rest of the steps are the same for every script.
+
+### The governance script
+
+Three parties jointly control a treasury account, each with a key in a different backend: Finance on AWS KMS, Operations on Vault and Compliance on a PKCS#11 token. The treasury's key is a threshold key list, so any two of the three must approve every transaction. Your funding account acts as coordinator: it pays the fees and submits, but its key isn't part of the treasury key, so it can't approve anything.
+
+1. **Settings and parties:** reads `example/.env` and connects to the three keys.
+2. **Create the treasury:** an account whose key is "2 of these 3 keys", funded with 10 HBAR.
+3. **One approval:** the coordinator proposes a payout and only Finance signs it. The network rejects it with `INVALID_SIGNATURE`.
+4. **Two approvals:** the same payout, and this time Finance and Operations each restore the transaction bytes, sign their copy with `signTransaction`, and pass the bytes on. The network accepts it.
+5. **Clean up:** a different pair, Operations and Compliance, approves deleting the treasury, and the remaining HBAR returns to your funding account.
+6. **Results:** a table of who approved what, plus a HashScan link.
+
+The script reuses the AWS, Vault and PKCS#11 settings from `.env`. It doesn't generate the PKCS#11 key pair, so run `npm run pkcs11` once first; its step 2 creates the key on the token.
 
 ## 1. Prepare the repository and your testnet account
 
@@ -324,7 +338,7 @@ The token's files are stored under Homebrew's `var/lib/softhsm/tokens`. Deleting
 Run the script for the backend you set up, from the `example` folder:
 
 ```sh
-npm run aws      # or gcp, azure, vault, pkcs11
+npm run aws      # or gcp, azure, vault, pkcs11, governance
 ```
 
 The output follows the eight steps and ends with a summary table:
@@ -354,15 +368,14 @@ Stripped of logging, every script uses the package like this, shown here for AWS
 
 ```ts
 import { AwsKmsSigner } from "hiero-remote-signer/aws";
-import { setClientOperator } from "hiero-remote-signer";
 
 const signer = await AwsKmsSigner.create({ keyId: "alias/hiero-operator" });
 
 // Every transaction this client sends is paid for and signed by the KMS key.
-const client = setClientOperator(Client.forTestnet(), accountId, signer);
+const client = signer.setClientOperator(Client.forTestnet(), accountId);
 
 // Or add the KMS signature to a transaction someone else pays for.
-await transaction.freezeWith(otherClient).signWith(signer.publicKey, signer.sign);
+await signer.signTransaction(transaction.freezeWith(otherClient));
 ```
 
 Only the backend's signer class and its client library differ between the five scripts. Compare `src/aws.ts` with `src/vault.ts` to see the difference.

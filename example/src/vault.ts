@@ -30,10 +30,7 @@ import {
     Status,
     TransferTransaction,
 } from "@hiero-ledger/sdk";
-import {
-    setClientOperator,
-    VaultTransitSigner,
-} from "hiero-remote-signer/vault";
+import { VaultTransitSigner } from "hiero-remote-signer/vault";
 
 // ---------------------------------------------------------------------------
 // Step 1: read the settings from example/.env
@@ -114,7 +111,7 @@ try {
     // remote signer as the client's operator, every signature on every
     // transaction this client sends comes from Vault.
     // -----------------------------------------------------------------------
-    remoteClient = setClientOperator(Client.forTestnet(), accountId, signer);
+    remoteClient = signer.setClientOperator(Client.forTestnet(), accountId);
 
     const transferResponse = await new TransferTransaction()
         .addHbarTransfer(accountId, transferAmount.negated())
@@ -132,14 +129,16 @@ try {
 
     // -----------------------------------------------------------------------
     // Step 5: the funding account pays the fee and signs locally; the
-    // remote key co-signs with signWith because it owns the debited account.
+    // remote key co-signs with signTransaction because it owns the debited
+    // account.
     // -----------------------------------------------------------------------
-    const coSigned = await new TransferTransaction()
-        .addHbarTransfer(accountId, transferAmount.negated())
-        .addHbarTransfer(fundingAccountId, transferAmount)
-        .setTransactionMemo("co-signed by Vault")
-        .freezeWith(fundingClient)
-        .signWith(signer.publicKey, signer.sign);
+    const coSigned = await signer.signTransaction(
+        new TransferTransaction()
+            .addHbarTransfer(accountId, transferAmount.negated())
+            .addHbarTransfer(fundingAccountId, transferAmount)
+            .setTransactionMemo("co-signed by Vault")
+            .freezeWith(fundingClient),
+    );
     const coSignResponse = await coSigned.execute(fundingClient);
     const coSignReceipt = await coSignResponse.getReceipt(fundingClient);
 

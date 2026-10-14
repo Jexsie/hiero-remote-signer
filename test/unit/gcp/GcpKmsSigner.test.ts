@@ -10,7 +10,6 @@ import {
 } from "@hiero-ledger/sdk";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 
-import { setClientOperator } from "../../../src/client/index.js";
 import { RemoteSignerErrorCodes } from "../../../src/errors/index.js";
 import { crc32c } from "../../../src/gcp/crc32c.js";
 import { GcpKmsSigner } from "../../../src/gcp/index.js";
@@ -345,7 +344,7 @@ describe.each(["EC_SIGN_SECP256K1_SHA256", "EC_SIGN_ED25519"] as const)(
             const key = makeGcpKey(algorithm);
             const signer = await setup(key).create();
             const network = hieroClient();
-            setClientOperator(network, "0.0.1234", signer);
+            signer.setClientOperator(network, "0.0.1234");
 
             const tx = transfer("0.0.1234").freezeWith(network);
             await tx.signWithOperator(network);
