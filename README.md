@@ -7,7 +7,7 @@ Sign Hiero transactions with external keys on a KMS or HSM.
 
 The package lets organizations sign Hiero transactions with keys held in AWS KMS, Google Cloud KMS, Azure Key Vault, HashiCorp Vault or a PKCS#11 HSM. Private keys never enter your application. Every signature passes the backend’s access controls and appears in its audit log. Combined with Hiero’s native threshold keys, the keys of one account can even sit in different backends, so no single provider or administrator can move funds alone.
 
-The signers plug into the existing hooks of the Hiero JavaScript SDK, with no fork or wallet layer. The package was inspired by the HSM and KMS signing tutorials in the Hedera developer docs.
+The signers plug into the existing hooks of the [Hiero JavaScript SDK](https://github.com/hiero-ledger/hiero-sdk-js), with no fork or wallet layer. The package was inspired by the [HSM and KMS signing tutorials](https://docs.hedera.com/native/tutorials/advanced/hsm-signing) in the Hedera developer docs.
 
 ## Install
 
